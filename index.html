@@ -169,7 +169,7 @@ details summary::-webkit-details-marker{display:none}
     <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" spellcheck="false">
     <label>通行碼</label>
     <input type="password" id="apiToken" placeholder="在 Apps Script 執行 setupToken 取得">
-    <p class="muted">只要在每支手機或電腦第一次使用時設定一次，會記在這個瀏覽器裡。</p>
+    <p class="muted">後端網址已經預先填好；每支手機或電腦第一次使用時，只要輸入通行碼一次，會記在這個瀏覽器裡。</p>
     <div class="actions"><button class="btn primary" id="connectBtn">連線</button></div>
   </div>
   <div class="card">
@@ -179,7 +179,7 @@ details summary::-webkit-details-marker{display:none}
     <p class="muted">到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費申請。金鑰存在你的 Apps Script 專案裡，不會出現在網頁上；已經設定過的話，這格留空就會保留原本的金鑰。</p>
     <label>模型</label>
     <input type="text" id="model">
-    <p class="muted">預設 gemini-3.5-flash。如果一直顯示「忙線」，可改成 gemini-3.8-flash 或 gemini-flash-lite-latest。</p>
+    <p class="muted">預設 gemini-3.5-flash-lite（批改約 1～2 秒）。想要更仔細的批改可改成 gemini-3.5-flash，但常常忙線、要等比較久。</p>
     <div class="actions"><button class="btn primary" id="saveSettings">儲存</button><button class="btn" id="testBtn">測試連線</button></div>
   </div>
   <div class="card">
@@ -206,7 +206,10 @@ const $ = s => document.querySelector(s);
 const DAY = 864e5;
 const INTERVALS = [0, 1, 2, 4, 7, 15, 30];
 const VERDICT = { correct: '完全正確', partial: '意思對，但有錯', wrong: '意思不對' };
-const DEFAULT_MODEL = 'gemini-3.5-flash';
+// lite 版批改約 1～2 秒；完整版常忙線，要重試很久
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+const OLD_DEFAULT_MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxHlvAinyEKuBxo2rwCAnjzetTUu9JFrPw9Wtrp9wAPpFpsRVtKWjiqhyI_VL5QTfUV/exec';
 const CONN_KEY = 'english-tutor.conn';
 const MAX_REC_SEC = 30;
 
@@ -218,7 +221,9 @@ let driveGroups = null;   // [{ folderName, files, error }]，null 代表還沒�
 
 // 後端網址和通行碼只記在這個瀏覽器
 function getConn() {
-  try { return JSON.parse(localStorage.getItem(CONN_KEY)) || {}; } catch (e) { return {}; }
+  let c = {};
+  try { c = JSON.parse(localStorage.getItem(CONN_KEY)) || {}; } catch (e) {}
+  return { url: c.url || DEFAULT_API_URL, token: c.token || '' };
 }
 function setConn(c) {
   try { localStorage.setItem(CONN_KEY, JSON.stringify(c)); } catch (e) { toast('這個瀏覽器無法記住設定'); }
@@ -248,7 +253,7 @@ async function run(fn, ...args) {
 function applyData(d) {
   const parsed = JSON.parse(d.json || '{}');
   db = { lessons: Array.isArray(parsed.lessons) ? parsed.lessons : [], settings: parsed.settings || {} };
-  if (!db.settings.model) db.settings.model = DEFAULT_MODEL;
+  if (!db.settings.model || OLD_DEFAULT_MODELS.includes(db.settings.model)) db.settings.model = DEFAULT_MODEL;
   rev = d.rev; hasKey = d.hasKey;
 }
 
@@ -894,7 +899,7 @@ async function connect() {
   return true;
 }
 
-if (getConn().url) connect();
+if (getConn().token) connect();
 else { $('#loading').classList.add('hidden'); showTab('settings'); }
 </script>
 </body>
