@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>英文家教</title>
+<style>
+:root{
+  --bg:#f6f5f2; --card:#ffffff; --text:#1f2328; --muted:#6b7280; --line:#e3e1dc;
+  --accent:#2563eb; --accent-text:#fff; --ok:#15803d; --ok-bg:#dcfce7; --mid:#a16207; --mid-bg:#fef3c7;
+  --bad:#b91c1c; --bad-bg:#fee2e2; --soft:#eef2ff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#16181d; --card:#1f2229; --text:#e6e6e6; --muted:#9ca3af; --line:#33363e;
+    --accent:#60a5fa; --accent-text:#0b1220; --ok:#4ade80; --ok-bg:#14301f; --mid:#fbbf24; --mid-bg:#3a2e10;
+    --bad:#f87171; --bad-bg:#3b1616; --soft:#1e2a44;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,"Microsoft JhengHei","PingFang TC",sans-serif}
+header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:5}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+header .wrap{display:flex;align-items:center;gap:12px;height:56px}
+header h1{font-size:18px;margin:0;flex:1}
+nav button{background:none;border:none;color:var(--muted);font:inherit;padding:6px 10px;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--soft);color:var(--accent);font-weight:600}
+main{padding:20px 0 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+h2{font-size:17px;margin:0 0 12px}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=password],select,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row > *{flex:1;min-width:140px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:9px 14px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.btn.small{padding:4px 10px;font-size:14px}
+.btn.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.muted{color:var(--muted);font-size:14px}
+.hidden{display:none!important}
+.progress{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;margin-bottom:8px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.zh{font-size:22px;font-weight:600;margin:4px 0 14px}
+.hint{color:var(--accent);margin:-6px 0 10px;font-size:15px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions .grow{flex:1}
+.verdict{display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700;margin-bottom:10px}
+.v-correct{background:var(--ok-bg);color:var(--ok)}
+.v-partial{background:var(--mid-bg);color:var(--mid)}
+.v-wrong{background:var(--bad-bg);color:var(--bad)}
+.err{border-left:3px solid var(--bad);padding:4px 0 4px 10px;margin:8px 0}
+.err .tag{font-size:12px;background:var(--bad-bg);color:var(--bad);padding:1px 8px;border-radius:6px;margin-right:6px}
+del{color:var(--bad)} ins{color:var(--ok);text-decoration:none;font-weight:600}
+.line{margin:8px 0}
+.line b{display:inline-block;min-width:5.5em;color:var(--muted);font-weight:500;font-size:14px}
+.speak{background:none;border:none;cursor:pointer;font-size:16px;padding:0 4px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{border-top:1px solid var(--line);padding:6px 4px;vertical-align:top;text-align:left}
+td input{padding:5px 8px;font-size:14px}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+.lesson-head{display:flex;align-items:center;gap:8px}
+.lesson-head .t{flex:1;font-weight:600}
+.stat{display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 14px}
+.stat div{background:var(--bg);border-radius:10px;padding:8px 14px}
+.stat strong{display:block;font-size:22px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:10px;max-width:90vw;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+#toast.show{opacity:1}
+.overflow{overflow-x:auto}
+.file{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
+.file .n{flex:1;min-width:0;overflow-wrap:anywhere}
+.badge{font-size:12px;padding:1px 8px;border-radius:6px;background:var(--bg);color:var(--muted);white-space:nowrap}
+.badge.new{background:var(--mid-bg);color:var(--mid)}
+.pron{margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)}
+.pron .stars{color:var(--mid);letter-spacing:2px}
+.pron b.w{margin-right:8px}
+#result audio{width:100%;margin:6px 0;height:36px}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);z-index:20}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>英文家教</h1>
+  <nav>
+    <button data-tab="practice" class="on">練習</button>
+    <button data-tab="lessons">課文</button>
+    <button data-tab="settings">設定</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+<!-- 練習 -->
+<section id="tab-practice">
+  <div class="card" id="setup">
+    <h2>開始練習</h2>
+    <div id="noLesson" class="muted hidden">還沒有課文。請先到「課文」貼上一篇雙語內容。</div>
+    <div id="setupForm">
+      <div class="row">
+        <div><label>課文</label><select id="selLesson"></select></div>
+        <div><label>模式</label><select id="selMode">
+          <option value="due">待複習（含新句子）</option>
+          <option value="wrong">只練錯題</option>
+          <option value="all">全部依序</option>
+        </select></div>
+        <div><label>題數</label><select id="selCount">
+          <option value="10">10 題</option><option value="20">20 題</option><option value="0">全部</option>
+        </select></div>
+      </div>
+      <p class="muted" id="counts"></p>
+      <button class="btn primary" id="startBtn">開始</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="quiz">
+    <div class="progress"><span id="progText"></span><a href="#" id="quitBtn" class="muted">結束</a></div>
+    <div class="bar"><i id="progBar"></i></div>
+    <div class="muted">請用英文說出：</div>
+    <div class="zh" id="qZh"></div>
+    <div class="hint hidden" id="qHint"></div>
+    <textarea id="answer" rows="2" placeholder="按 🎤 用說的，或輸入英文按 Enter 送出" autocomplete="off" spellcheck="false"></textarea>
+    <div class="actions" id="askActions">
+      <button class="btn" id="micBtn">🎤 錄音</button>
+      <button class="btn" id="hintBtn">提示</button>
+      <button class="btn" id="skipBtn">跳過</button>
+      <span class="grow"></span>
+      <button class="btn primary" id="submitBtn">送出</button>
+    </div>
+    <div id="result" class="hidden" style="margin-top:16px"></div>
+    <div class="actions hidden" id="nextActions">
+      <span class="grow"></span>
+      <button class="btn primary" id="nextBtn">下一題 →</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="summary"></div>
+</section>
+
+<!-- 課文 -->
+<section id="tab-lessons" class="hidden">
+  <div class="card">
+    <h2>從雲端硬碟匯入</h2>
+    <label>課文資料夾網址（一行一個）</label>
+    <textarea id="folderUrls" rows="2" placeholder="https://drive.google.com/drive/folders/..." spellcheck="false"></textarea>
+    <div class="actions"><button class="btn primary" id="listBtn">重新讀取資料夾</button></div>
+    <p class="muted">打開這一頁時會自動讀取。要加資料夾的話，在雲端硬碟打開那個資料夾，複製網址貼成新的一行。支援 Google 文件和 Word 檔。</p>
+    <div id="driveList"></div>
+  </div>
+  <div class="card">
+    <h2>手動貼上課文</h2>
+    <label>標題</label>
+    <input type="text" id="newTitle" placeholder="例如：Unit 3 At the Restaurant">
+    <label>雙語內容（直接貼上，格式不拘）</label>
+    <textarea id="newText" rows="8" placeholder="把課文貼在這裡，中英對照、段落交錯都可以"></textarea>
+    <div class="actions"><button class="btn primary" id="addBtn">用 Gemini 整理成練習句</button></div>
+    <p class="muted">Gemini 會抽出英文句子並配上中文；沒有中文的句子會幫你翻譯。整理完可以在下方修改或刪除。</p>
+  </div>
+  <div id="lessonList"></div>
+</section>
+
+<!-- 設定 -->
+<section id="tab-settings" class="hidden">
+  <div class="card">
+    <h2>連線設定</h2>
+    <label>後端網址（Apps Script 網頁應用程式網址）</label>
+    <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" spellcheck="false">
+    <label>通行碼</label>
+    <input type="password" id="apiToken" placeholder="在 Apps Script 執行 setupToken 取得">
+    <p class="muted">只要在每支手機或電腦第一次使用時設定一次，會記在這個瀏覽器裡。</p>
+    <div class="actions"><button class="btn primary" id="connectBtn">連線</button></div>
+  </div>
+  <div class="card">
+    <h2>Gemini 設定</h2>
+    <label>API 金鑰</label>
+    <input type="password" id="apiKey" placeholder="尚未設定">
+    <p class="muted">到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費申請。金鑰存在你的 Apps Script 專案裡，不會出現在網頁上；已經設定過的話，這格留空就會保留原本的金鑰。</p>
+    <label>模型</label>
+    <input type="text" id="model">
+    <p class="muted">預設 gemini-3.5-flash。如果一直顯示「忙線」，可改成 gemini-3.8-flash 或 gemini-flash-lite-latest。</p>
+    <div class="actions"><button class="btn primary" id="saveSettings">儲存</button><button class="btn" id="testBtn">測試連線</button></div>
+  </div>
+  <div class="card">
+    <h2>備份</h2>
+    <p class="muted">課文和練習紀錄會自動存在你雲端硬碟的「英文家教資料.json」，手機和電腦會同步。下面的按鈕可以另外下載一份備份，或把舊的本機版備份匯入。</p>
+    <div class="actions">
+      <button class="btn" id="exportBtn">匯出備份</button>
+      <button class="btn" id="importBtn">匯入備份</button>
+      <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+    </div>
+  </div>
+  <div class="card">
+    <h2>複習規則</h2>
+    <p class="muted">答對的句子會間隔越來越久再出現（1、2、4、7、15、30 天）；部分對的隔天再練；答錯或跳過的下次立刻再練。有按「提示」的題目，答對也算部分對。</p>
+  </div>
+</section>
+</main>
+
+<div id="toast"></div>
+<div id="loading">載入中…</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const DAY = 864e5;
+const INTERVALS = [0, 1, 2, 4, 7, 15, 30];
+const VERDICT = { correct: '完全正確', partial: '意思對，但有錯', wrong: '意思不對' };
+const DEFAULT_MODEL = 'gemini-3.5-flash';
+const CONN_KEY = 'english-tutor.conn';
+const MAX_REC_SEC = 30;
+
+let db = { lessons: [], settings: {} };
+let rev = 0, hasKey = false, loaded = false;
+let session = null;   // { queue, i, results, hints, answered, recUrl }
+let rec = null;       // { recorder, stream, timer }
+let driveGroups = null;   // [{ folderName, files, error }]，null 代表還沒讀過
+
+// 後端網址和通行碼只記在這個瀏覽器
+function getConn() {
+  try { return JSON.parse(localStorage.getItem(CONN_KEY)) || {}; } catch (e) { return {}; }
+}
+function setConn(c) {
+  try { localStorage.setItem(CONN_KEY, JSON.stringify(c)); } catch (e) { toast('這個瀏覽器無法記住設定'); }
+}
+
+// 呼叫 Code.gs 的函式。Content-Type 用 text/plain，才不會被瀏覽器擋（CORS 預檢）
+async function run(fn, ...args) {
+  const { url, token } = getConn();
+  if (!url || !token) throw new Error('請先到「設定」填寫後端網址和通行碼');
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ token, fn, args })
+    });
+  } catch (e) {
+    throw new Error('連不到後端，請檢查網路，或確認 Apps Script 部署的存取權是「任何人」');
+  }
+  let d;
+  try { d = await res.json(); }
+  catch (e) { throw new Error('後端回應格式不對，請確認後端網址是結尾 /exec 的網址，且存取權是「任何人」'); }
+  if (!d.ok) throw new Error(d.error);
+  return d.result;
+}
+
+function applyData(d) {
+  const parsed = JSON.parse(d.json || '{}');
+  db = { lessons: Array.isArray(parsed.lessons) ? parsed.lessons : [], settings: parsed.settings || {} };
+  if (!db.settings.model) db.settings.model = DEFAULT_MODEL;
+  rev = d.rev; hasKey = d.hasKey;
+}
+
+// 存檔：等使用者停下來 0.6 秒再一次寫進雲端；同時間只送一筆
+let saveTimer = null, saving = false, dirty = false;
+function save() {
+  if (!loaded) return;
+  dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 600);
+}
+async function flush() {
+  if (saving || !dirty) return;
+  saving = true; dirty = false;
+  try {
+    const r = await run('saveData', JSON.stringify(db), rev);
+    if (r.ok) rev = r.rev;
+    else {
+      applyData(await run('loadData'));
+      toast('其他裝置剛更新過資料，已重新載入最新版本');
+      if (!session) { renderSetup(); renderLessons(); }
+    }
+  } catch (e) {
+    dirty = true;
+    toast('雲端儲存失敗，稍後會再試：' + e.message);
+    setTimeout(flush, 5000);
+  } finally {
+    saving = false;
+    if (dirty) save();
+  }
+}
+window.addEventListener('beforeunload', e => { if (dirty || saving) { e.preventDefault(); e.returnValue = ''; } });
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ---------- Gemini ----------
+function gemini(system, user, audio) {
+  if (!hasKey) return Promise.reject(new Error('請先到「設定」輸入 Gemini API 金鑰'));
+  return run('gemini', system, user, db.settings.model || DEFAULT_MODEL, audio || null);
+}
+
+const EXTRACT_PROMPT = `你會收到一篇雙語（英文＋中文）課程內容。請抽出適合做「看中文、說英文」練習的英文句子，並配上對應的中文。
+規則：
+- 以完整句子為單位；超過 25 個字的長句可依子句切開。
+- 標題、頁碼、說明文字可略過；有意義的片語可保留。
+- 英文保持原文，不要改寫。
+- 有對應中文就用課文的中文；沒有的話請翻成自然的繁體中文。
+- 依課文順序。
+只輸出 JSON 陣列：[{"en":"...","zh":"..."}]`;
+
+const GRADE_RULES = `- 標準是「意思正確，而且英文文法正確、自然」，不要求跟課文原句一模一樣。學生的說法若也正確自然，verdict 給 correct，並在 note 說明跟原句的差別。
+- 忽略大小寫和句尾標點。
+- verdict：correct＝意思正確且沒有文法錯誤；partial＝意思大致對，但有文法、用字錯誤或漏掉部分內容；wrong＝意思不對或幾乎沒答。
+- errors：逐一列出錯誤。type 從這些選一個：文法、時態、用字、拼字、冠詞、介系詞、單複數、語序、漏字、意思錯誤、其他。wrong 填學生寫錯的片段，fix 填修正後的片段，explain 用繁體中文簡短說明為什麼錯、該怎麼記。
+- corrected：保留學生原本的說法，只改掉錯的地方後的完整句子。全對就和學生答案相同。
+- note：一兩句繁體中文的總評或補充（例如更自然的說法、相關用法）。`;
+
+const GRADE_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用英文寫出意思。請批改學生的英文。
+規則：
+${GRADE_RULES}
+- 學生可能用手機鍵盤語音輸入，若明顯是語音辨識的同音字問題，在 note 提醒即可，不算錯。
+只輸出 JSON：{"verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":""}],"corrected":"","note":""}`;
+
+const AUDIO_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用說的說出英文，你會收到他的錄音。
+步驟：
+1. heard：逐字寫下你聽到的英文。學生講錯的地方照實寫，不要幫他修正；聽不清楚的字寫成 (?)。完全聽不到英文就留空字串。
+2. 用 heard 批改文法和用字，規則：
+${GRADE_RULES}
+3. pronunciation：評估發音。
+   - score：1～5（5＝清楚自然，3＝聽得懂但有明顯口音或錯誤，1＝很難聽懂）。
+   - items：列出唸不清楚或唸錯的字，每項有 word、issue（用繁體中文說明哪裡不對，例如重音位置、母音、字尾子音沒發出來）、tip（怎麼唸比較好，可附 KK 音標）。沒有問題就給空陣列。
+   - comment：一句繁體中文總評，包含流暢度和語調。
+只輸出 JSON：{"heard":"","verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":""}],"corrected":"","note":"","pronunciation":{"score":3,"items":[{"word":"","issue":"","tip":""}],"comment":""}}`;
+
+// ---------- 分頁 ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(name) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  ['practice', 'lessons', 'settings'].forEach(t => $('#tab-' + t).classList.toggle('hidden', t !== name));
+  if (name === 'practice') renderSetup();
+  if (name === 'lessons') { renderLessons(); if (loaded && !driveGroups && folderList().length) loadFolders(); }
+  if (name === 'settings') renderSettings();
+}
+
+// ---------- 練習設定 ----------
+function allItems(lessonId) {
+  const ls = lessonId === 'all' ? db.lessons : db.lessons.filter(l => l.id === lessonId);
+  return ls.flatMap(l => l.items).filter(it => it.en && it.zh);
+}
+function pick(mode, lessonId) {
+  const items = allItems(lessonId), now = Date.now();
+  if (mode === 'all') return items.slice();
+  if (mode === 'wrong') return items.filter(it => it.attempts > 0 && it.last !== 'correct');
+  const reviews = items.filter(it => it.attempts > 0 && it.due <= now).sort((a, b) => a.due - b.due);
+  const fresh = items.filter(it => it.attempts === 0);
+  return reviews.concat(fresh);
+}
+function renderSetup() {
+  if (session) return;
+  const has = db.lessons.length > 0;
+  $('#noLesson').classList.toggle('hidden', has);
+  $('#setupForm').classList.toggle('hidden', !has);
+  if (!has) return;
+  const sel = $('#selLesson'), prev = sel.value;
+  sel.innerHTML = (db.lessons.length > 1 ? '<option value="all">全部課文</option>' : '') +
+    db.lessons.map(l => `<option value="${l.id}">${esc(l.title)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  updateCounts();
+}
+function updateCounts() {
+  const id = $('#selLesson').value;
+  const items = allItems(id);
+  const now = Date.now();
+  const fresh = items.filter(it => it.attempts === 0).length;
+  const due = items.filter(it => it.attempts > 0 && it.due <= now).length;
+  const wrong = items.filter(it => it.attempts > 0 && it.last !== 'correct').length;
+  $('#counts').textContent = `待複習 ${due} 題、新句子 ${fresh} 題、錯題 ${wrong} 題，共 ${items.length} 句`;
+}
+$('#selLesson').onchange = updateCounts;
+$('#startBtn').onclick = () => {
+  let q = pick($('#selMode').value, $('#selLesson').value);
+  const n = +$('#selCount').value;
+  if (n) q = q.slice(0, n);
+  if (!q.length) { toast($('#selMode').value === 'wrong' ? '沒有錯題，太棒了！' : '目前沒有要複習的題目，可以改選「全部依序」'); return; }
+  startSession(q);
+};
+
+// ---------- 作答 ----------
+function startSession(queue) {
+  session = { queue, i: 0, results: [] };
+  $('#setup').classList.add('hidden');
+  $('#summary').classList.add('hidden');
+  $('#quiz').classList.remove('hidden');
+  showQuestion();
+}
+function current() { return session.queue[session.i]; }
+function showQuestion() {
+  const it = current(), n = session.queue.length;
+  cancelRecording();
+  if (session.recUrl) { URL.revokeObjectURL(session.recUrl); session.recUrl = null; }
+  session.hints = 0; session.answered = false;
+  $('#progText').textContent = `第 ${session.i + 1} 題 / 共 ${n} 題`;
+  $('#progBar').style.width = (session.i / n * 100) + '%';
+  $('#qZh').textContent = it.zh;
+  $('#qHint').classList.add('hidden');
+  $('#answer').value = ''; $('#answer').disabled = false;
+  $('#result').classList.add('hidden');
+  $('#askActions').classList.remove('hidden');
+  $('#nextActions').classList.add('hidden');
+  setBusy(false);
+  $('#answer').focus();
+}
+function setBusy(b, label) {
+  ['#submitBtn', '#hintBtn', '#skipBtn', '#micBtn'].forEach(s => $(s).disabled = b);
+  $('#answer').disabled = b;
+  $('#submitBtn').textContent = b ? (label || 'Gemini 批改中…') : '送出';
+}
+$('#hintBtn').onclick = () => {
+  const words = current().en.split(/\s+/);
+  session.hints = Math.min(session.hints + 1, words.length);
+  $('#qHint').textContent = '提示：' + words.slice(0, session.hints).join(' ') + (session.hints < words.length ? ' …' : '');
+  $('#qHint').classList.remove('hidden');
+  $('#answer').focus();
+};
+$('#skipBtn').onclick = () => finish('', { verdict: 'wrong', errors: [], corrected: '', note: '已跳過，這題會列入錯題。' });
+$('#submitBtn').onclick = submit;
+$('#answer').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && session && session.answered && document.activeElement !== $('#answer')) { e.preventDefault(); next(); }
+});
+
+async function submit() {
+  if (!session || session.answered) return;
+  const ans = $('#answer').value.trim();
+  if (!ans) { toast('請先輸入英文，或按 🎤 錄音'); return; }
+  const it = current();
+  setBusy(true);
+  try {
+    const r = await gemini(GRADE_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的英文：${ans}`);
+    if (!VERDICT[r.verdict]) r.verdict = 'partial';
+    finish(ans, r);
+  } catch (e) {
+    setBusy(false);
+    toast(e.message);
+  }
+}
+
+function finish(ans, r) {
+  const it = current();
+  session.answered = true;
+  const usedHint = session.hints > 0 && r.verdict === 'correct';
+  schedule(it, usedHint ? 'partial' : r.verdict, ans);
+  session.results.push({ item: it, answer: ans, r });
+  renderResult(it, ans, r, usedHint);
+  $('#answer').disabled = true;
+  $('#askActions').classList.add('hidden');
+  $('#nextActions').classList.remove('hidden');
+  $('#nextBtn').textContent = session.i + 1 < session.queue.length ? '下一題 →' : '看結果';
+  $('#nextBtn').focus();
+}
+
+function schedule(it, verdict, ans) {
+  const now = Date.now();
+  it.attempts++;
+  if (verdict === 'correct') { it.correct++; it.box = Math.min(it.box + 1, INTERVALS.length - 1); }
+  else if (verdict === 'partial') it.box = 1;
+  else it.box = 0;
+  it.due = now + INTERVALS[it.box] * DAY;
+  it.last = verdict;
+  it.lastAnswer = ans;
+  it.lastAt = now;
+  save();
+}
+
+function renderResult(it, ans, r, usedHint) {
+  const errs = (r.errors || []).map(e => `
+    <div class="err"><span class="tag">${esc(e.type || '錯誤')}</span>
+      ${e.wrong ? `<del>${esc(e.wrong)}</del> → ` : ''}<ins>${esc(e.fix)}</ins>
+      <div class="muted">${esc(e.explain)}</div></div>`).join('');
+  const showCorrected = r.corrected && r.corrected.trim() !== ans.trim();
+  const p = r.pronunciation;
+  const pron = p ? `
+    <div class="pron">
+      <div><b>發音</b> <span class="stars">${'★'.repeat(clampScore(p.score))}${'☆'.repeat(5 - clampScore(p.score))}</span></div>
+      ${(p.items || []).map(x => `<div class="line">🔸 <b class="w">${esc(x.word)}</b>${esc(x.issue)}<div class="muted">${esc(x.tip)}</div></div>`).join('')}
+      ${p.comment ? `<div class="muted">${esc(p.comment)}</div>` : ''}
+    </div>` : '';
+  $('#result').innerHTML = `
+    <span class="verdict v-${r.verdict}">${VERDICT[r.verdict]}</span>
+    ${usedHint ? '<span class="muted">（有用提示，下次會提早複習）</span>' : ''}
+    ${ans ? `<div class="line"><b>${r.audio ? 'Gemini 聽到' : '你的回答'}</b>${esc(ans)}</div>` : ''}
+    ${r.audio && session.recUrl ? `<audio controls src="${session.recUrl}"></audio>` : ''}
+    ${errs}
+    ${showCorrected ? `<div class="line"><b>修正後</b><ins>${esc(r.corrected)}</ins></div>` : ''}
+    <div class="line"><b>課文原句</b>${esc(it.en)} <button class="speak" title="朗讀" data-say="${esc(it.en)}">🔊</button></div>
+    ${r.note ? `<div class="line muted">💡 ${esc(r.note)}</div>` : ''}
+    ${pron}`;
+  $('#result').classList.remove('hidden');
+}
+function clampScore(n) { return Math.max(1, Math.min(5, Math.round(Number(n) || 3))); }
+$('#result').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) speak(b.dataset.say); });
+$('#nextBtn').onclick = next;
+function next() {
+  if (!session) return;
+  session.i++;
+  if (session.i < session.queue.length) showQuestion(); else showSummary();
+}
+$('#quitBtn').onclick = e => { e.preventDefault(); cancelRecording(); if (session.results.length) showSummary(); else endSession(); };
+
+function showSummary() {
+  const res = session.results, n = res.length;
+  const ok = res.filter(x => x.r.verdict === 'correct').length;
+  const tally = {};
+  res.forEach(x => (x.r.errors || []).forEach(e => { const t = e.type || '其他'; tally[t] = (tally[t] || 0) + 1; }));
+  const top = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const missed = res.filter(x => x.r.verdict !== 'correct');
+  const spoken = res.filter(x => x.r.pronunciation);
+  const pronAvg = spoken.length ? (spoken.reduce((s, x) => s + clampScore(x.r.pronunciation.score), 0) / spoken.length).toFixed(1) : '';
+  $('#summary').innerHTML = `
+    <h2>練習結果</h2>
+    <div class="stat">
+      <div><span class="muted">答對率</span><strong>${n ? Math.round(ok / n * 100) : 0}%</strong></div>
+      <div><span class="muted">完全正確</span><strong>${ok} / ${n}</strong></div>
+      ${pronAvg ? `<div><span class="muted">發音平均</span><strong>${pronAvg} / 5</strong></div>` : ''}
+    </div>
+    ${top.length ? `<p><b>最常犯的錯誤：</b>${top.map(([t, c]) => `${esc(t)}（${c} 次）`).join('、')}</p>` : ''}
+    ${missed.length ? `<h2>要再加強的句子</h2><div class="overflow"><table>
+      <tr><th>中文</th><th>正確英文</th><th>你的回答</th></tr>
+      ${missed.map(x => `<tr><td>${esc(x.item.zh)}</td><td>${esc(x.item.en)}</td><td>${esc(x.answer || '（跳過）')}</td></tr>`).join('')}
+    </table></div>` : '<p>全部答對，太厲害了！</p>'}
+    <div class="actions">
+      ${missed.length ? '<button class="btn primary" id="retryBtn">重練這次的錯題</button>' : ''}
+      <button class="btn" id="homeBtn">回到首頁</button>
+    </div>`;
+  $('#quiz').classList.add('hidden');
+  $('#summary').classList.remove('hidden');
+  const missedItems = missed.map(x => x.item);
+  if (missed.length) $('#retryBtn').onclick = () => startSession(missedItems);
+  $('#homeBtn').onclick = endSession;
+}
+function endSession() {
+  cancelRecording();
+  session = null;
+  $('#quiz').classList.add('hidden');
+  $('#summary').classList.add('hidden');
+  $('#setup').classList.remove('hidden');
+  renderSetup();
+}
+
+// ---------- 錄音 ----------
+// 按一下開始錄，再按一下停止；停止後轉成 WAV 交給 Gemini 聽寫、批改、評發音
+$('#micBtn').onclick = () => { if (rec) rec.recorder.stop(); else startRecording(); };
+
+async function startRecording() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) { toast('這個瀏覽器不支援錄音，請改用打字'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { toast('沒有麥克風權限，請在瀏覽器網址列旁允許使用麥克風'); return; }
+  const chunks = [], recorder = new MediaRecorder(stream), started = Date.now();
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearInterval(rec.timer);
+    const cancelled = rec.cancelled;
+    rec = null;
+    setRecording(false);
+    if (cancelled) return;
+    if (Date.now() - started < 600) { toast('錄音太短，請按住說完整句再停止'); return; }
+    gradeRecording(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }));
+  };
+  rec = { recorder, stream, cancelled: false, timer: setInterval(() => {
+    const sec = Math.floor((Date.now() - started) / 1000);
+    $('#micBtn').textContent = `■ 停止 0:${String(sec).padStart(2, '0')}`;
+    if (sec >= MAX_REC_SEC) recorder.stop();
+  }, 250) };
+  recorder.start();
+  setRecording(true);
+}
+function cancelRecording() {
+  if (!rec) return;
+  rec.cancelled = true;
+  rec.recorder.stop();
+}
+function setRecording(on) {
+  ['#submitBtn', '#hintBtn', '#skipBtn'].forEach(s => $(s).disabled = on);
+  $('#answer').disabled = on;
+  $('#micBtn').classList.toggle('on', on);
+  $('#micBtn').textContent = on ? '■ 停止 0:00' : '🎤 錄音';
+}
+
+async function gradeRecording(blob) {
+  if (!session || session.answered) return;
+  const it = current();
+  if (session.recUrl) URL.revokeObjectURL(session.recUrl);
+  session.recUrl = URL.createObjectURL(blob);
+  setBusy(true, 'Gemini 聽你說…');
+  try {
+    const data = await blobToWavBase64(blob);
+    const r = await gemini(AUDIO_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的錄音如下。`, { mime: 'audio/wav', data });
+    const heard = String(r.heard || '').trim();
+    if (!heard) { setBusy(false); toast('沒有聽到英文，請再錄一次'); return; }
+    if (!VERDICT[r.verdict]) r.verdict = 'partial';
+    r.audio = true;
+    $('#answer').value = heard;
+    finish(heard, r);
+  } catch (e) {
+    setBusy(false);
+    toast(e.message);
+  }
+}
+
+// 手機錄出來的格式各家不同（webm、mp4），統一解碼後轉成 16kHz 單聲道 WAV
+async function blobToWavBase64(blob) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC();
+  const ab = await blob.arrayBuffer();
+  let buf;
+  try {
+    buf = await new Promise((resolve, reject) => {
+      const p = ctx.decodeAudioData(ab, resolve, reject);
+      if (p && p.catch) p.catch(reject);
+    });
+  } catch (e) {
+    throw new Error('錄音解碼失敗，請再試一次');
+  } finally {
+    if (ctx.close) ctx.close();
+  }
+  const mono = new Float32Array(buf.length);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) mono[i] += d[i] / buf.numberOfChannels;
+  }
+  return bytesToBase64(encodeWav(resample(mono, buf.sampleRate, 16000), 16000));
+}
+function resample(data, from, to) {
+  if (from === to) return data;
+  const ratio = from / to, n = Math.floor(data.length / ratio), out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const s = Math.floor(i * ratio), e = Math.min(Math.floor((i + 1) * ratio), data.length);
+    let sum = 0;
+    for (let j = s; j < e; j++) sum += data[j];
+    out[i] = e > s ? sum / (e - s) : data[s] || 0;
+  }
+  return out;
+}
+function encodeWav(samples, rate) {
+  const v = new DataView(new ArrayBuffer(44 + samples.length * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Uint8Array(v.buffer);
+}
+function bytesToBase64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+// ---------- 課文 ----------
+$('#addBtn').onclick = async () => {
+  const text = $('#newText').value.trim();
+  if (!text) { toast('請先貼上課文內容'); return; }
+  const btn = $('#addBtn');
+  btn.disabled = true; btn.textContent = 'Gemini 整理中…';
+  try {
+    const items = await extractItems(text);
+    const title = $('#newTitle').value.trim() || '課文 ' + (db.lessons.length + 1);
+    db.lessons.push({ id: uid(), title, created: Date.now(), items });
+    save();
+    $('#newTitle').value = ''; $('#newText').value = '';
+    toast(`已整理出 ${items.length} 句，可以開始練習了`);
+    renderLessons();
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '用 Gemini 整理成練習句';
+  }
+};
+async function extractItems(text) {
+  const arr = await gemini(EXTRACT_PROMPT, text);
+  const items = (Array.isArray(arr) ? arr : arr.items || [])
+    .filter(x => x && x.en && x.zh)
+    .map(x => newItem(String(x.en).trim(), String(x.zh).trim()));
+  if (!items.length) throw new Error('沒有找到英文句子，請確認內容');
+  return items;
+}
+function newItem(en, zh) {
+  return { id: uid(), en, zh, box: 0, due: 0, attempts: 0, correct: 0, last: null, lastAnswer: '', lastAt: 0 };
+}
+
+// ---------- 雲端硬碟匯入 ----------
+function folderList() {
+  return $('#folderUrls').value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+$('#listBtn').onclick = loadFolders;
+async function loadFolders() {
+  const urls = folderList();
+  if (!urls.length) { toast('請先貼上資料夾網址'); return; }
+  if (JSON.stringify(db.settings.folders) !== JSON.stringify(urls)) { db.settings.folders = urls; save(); }
+  const btn = $('#listBtn');
+  btn.disabled = true; btn.textContent = '讀取中…';
+  $('#driveList').innerHTML = '<p class="muted">讀取雲端硬碟中…</p>';
+  driveGroups = await Promise.all(urls.map(u => run('listDriveFiles', u).catch(e => ({ folderName: u, files: [], error: e.message }))));
+  btn.disabled = false; btn.textContent = '重新讀取資料夾';
+  renderDrive();
+}
+function renderDrive() {
+  if (!driveGroups) return;
+  $('#driveList').innerHTML = driveGroups.map(g => {
+    const head = `<p style="margin:14px 0 4px"><b>📁 ${esc(g.folderName)}</b> <span class="muted">${g.error ? '' : g.files.length + ' 個檔案'}</span></p>`;
+    if (g.error) return head + `<p class="muted">⚠️ ${esc(g.error)}</p>`;
+    if (!g.files.length) return head + '<p class="muted">這個資料夾裡沒有 Google 文件或 Word 檔。</p>';
+    return head + g.files.map(f => {
+      const l = db.lessons.find(x => x.sourceId === f.id);
+      const status = !l ? '' : f.modified > (l.sourceModified || 0)
+        ? '<span class="badge new">檔案有更新</span>' : '<span class="badge">已匯入</span>';
+      return `<div class="file" data-file="${f.id}">
+        <span class="n">${f.type === 'doc' ? '📄' : '📘'} ${esc(f.name)}</span>${status}
+        <button class="btn small" data-import>${l ? '重新匯入' : '匯入'}</button></div>`;
+    }).join('');
+  }).join('');
+}
+$('#driveList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-import]'); if (!b) return;
+  const id = b.closest('[data-file]').dataset.file;
+  const old = db.lessons.find(x => x.sourceId === id);
+  if (old && !confirm(`重新匯入「${old.title}」？\n句子會依檔案內容更新，相同英文句子的練習紀錄會保留。`)) return;
+  document.querySelectorAll('[data-import]').forEach(x => x.disabled = true);
+  b.textContent = '讀取檔案…';
+  try {
+    const f = await run('getDriveText', id);
+    if (!f.text.trim()) throw new Error('這個檔案是空的');
+    b.textContent = 'Gemini 整理中…';
+    const items = await extractItems(f.text);
+    if (old) {
+      // 英文一樣的句子沿用舊的練習紀錄
+      const prev = new Map(old.items.map(it => [it.en.toLowerCase(), it]));
+      old.items = items.map(it => {
+        const p = prev.get(it.en.toLowerCase());
+        return p ? { ...p, zh: it.zh } : it;
+      });
+      old.sourceModified = f.modified;
+      toast(`已更新「${old.title}」，共 ${items.length} 句`);
+    } else {
+      db.lessons.push({ id: uid(), title: f.title, created: Date.now(), items, sourceId: id, sourceModified: f.modified });
+      toast(`已匯入「${f.title}」，共 ${items.length} 句`);
+    }
+    save();
+    renderLessons();
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    renderDrive();
+  }
+});
+function renderLessons() {
+  const list = $('#lessonList');
+  if (!db.lessons.length) { list.innerHTML = ''; return; }
+  list.innerHTML = db.lessons.slice().reverse().map(l => {
+    const done = l.items.filter(it => it.attempts > 0).length;
+    const wrong = l.items.filter(it => it.attempts > 0 && it.last !== 'correct').length;
+    return `<details class="card" data-lesson="${l.id}">
+      <summary class="lesson-head"><span class="t">${esc(l.title)}</span>
+        <span class="muted">${l.items.length} 句・練過 ${done}・錯題 ${wrong}</span></summary>
+      <div class="overflow" style="margin-top:12px"><table>
+        <tr><th>中文</th><th>英文</th><th style="width:70px">紀錄</th><th style="width:40px"></th></tr>
+        ${l.items.map(it => `<tr data-item="${it.id}">
+          <td><input type="text" data-f="zh" value="${esc(it.zh)}"></td>
+          <td><input type="text" data-f="en" value="${esc(it.en)}"></td>
+          <td class="muted">${it.attempts ? `${it.correct}/${it.attempts}` : '—'}</td>
+          <td><button class="btn small" data-del-item title="刪除">✕</button></td></tr>`).join('')}
+      </table></div>
+      <div class="actions">
+        <button class="btn small" data-add-item>＋ 新增句子</button>
+        <button class="btn small" data-rename>改標題</button>
+        <button class="btn small" data-reset>清除練習紀錄</button>
+        <span class="grow"></span>
+        <button class="btn small" data-del-lesson>刪除這篇</button>
+      </div></details>`;
+  }).join('');
+}
+function findLesson(el) { return db.lessons.find(l => l.id === el.closest('[data-lesson]').dataset.lesson); }
+$('#lessonList').addEventListener('change', e => {
+  const f = e.target.dataset.f; if (!f) return;
+  const l = findLesson(e.target), it = l.items.find(x => x.id === e.target.closest('[data-item]').dataset.item);
+  it[f] = e.target.value.trim(); save(); toast('已更新');
+});
+$('#lessonList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const l = findLesson(b);
+  if (b.hasAttribute('data-del-item')) {
+    l.items = l.items.filter(x => x.id !== b.closest('[data-item]').dataset.item);
+  } else if (b.hasAttribute('data-add-item')) {
+    l.items.push(newItem('', ''));
+  } else if (b.hasAttribute('data-rename')) {
+    const t = prompt('新標題', l.title); if (!t) return; l.title = t.trim();
+  } else if (b.hasAttribute('data-reset')) {
+    if (!confirm('清除「' + l.title + '」的練習紀錄？句子會保留。')) return;
+    l.items = l.items.map(it => newItem(it.en, it.zh));
+  } else if (b.hasAttribute('data-del-lesson')) {
+    if (!confirm('刪除「' + l.title + '」和它的練習紀錄？')) return;
+    db.lessons = db.lessons.filter(x => x !== l);
+  } else return;
+  db.lessons.forEach(x => x.items = x.items.filter(it => it.en || it.zh || b.hasAttribute('data-add-item')));
+  save();
+  const open = l.id;
+  renderLessons();
+  const d = document.querySelector(`[data-lesson="${open}"]`); if (d) d.open = true;
+});
+
+// ---------- 設定與備份 ----------
+function renderSettings() {
+  const c = getConn();
+  $('#apiUrl').value = c.url || '';
+  $('#apiToken').value = c.token || '';
+  $('#apiKey').value = '';
+  $('#apiKey').placeholder = hasKey ? '已設定（要更換才需要重新輸入）' : '尚未設定';
+  $('#model').value = db.settings.model || DEFAULT_MODEL;
+}
+async function saveSettings() {
+  const key = $('#apiKey').value.trim();
+  if (key) { hasKey = await run('setApiKey', key); $('#apiKey').value = ''; }
+  db.settings.model = $('#model').value.trim() || DEFAULT_MODEL;
+  save();
+  renderSettings();
+}
+$('#saveSettings').onclick = async () => {
+  try { await saveSettings(); toast('已儲存'); } catch (e) { toast(e.message); }
+};
+$('#testBtn').onclick = async () => {
+  const btn = $('#testBtn'); btn.disabled = true; btn.textContent = '測試中…';
+  try {
+    await saveSettings();
+    await gemini('只輸出 JSON。', '回傳 {"ok":true}');
+    toast('連線成功！可以開始使用了');
+  } catch (e) { toast(e.message); }
+  finally { btn.disabled = false; btn.textContent = '測試連線'; }
+};
+$('#exportBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }));
+  a.download = '英文家教備份-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!Array.isArray(d.lessons)) throw new Error('檔案格式不對');
+    if (!confirm(`匯入 ${d.lessons.length} 篇課文，會取代目前的課文與紀錄。確定？`)) return;
+    db.lessons = d.lessons; save(); toast('匯入完成');
+  } catch (err) { toast('匯入失敗：' + err.message); }
+};
+
+$('#connectBtn').onclick = async () => {
+  const url = $('#apiUrl').value.trim(), token = $('#apiToken').value.trim();
+  if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(url)) { toast('後端網址要是 https://script.google.com/macros/s/.../exec'); return; }
+  if (!token) { toast('請輸入通行碼'); return; }
+  setConn({ url, token });
+  const btn = $('#connectBtn'); btn.disabled = true; btn.textContent = '連線中…';
+  if (await connect()) toast('連線成功');
+  btn.disabled = false; btn.textContent = '連線';
+};
+
+// 讀取雲端資料；還沒讀到之前不存檔，避免空資料蓋掉雲端
+async function connect() {
+  $('#loading').classList.remove('hidden');
+  try {
+    applyData(await run('loadData'));
+    loaded = true;
+  } catch (e) {
+    $('#loading').classList.add('hidden');
+    showTab('settings');
+    toast(e.message);
+    return false;
+  }
+  $('#loading').classList.add('hidden');
+  $('#folderUrls').value = (db.settings.folders || []).join('\n');
+  driveGroups = null;
+  showTab(hasKey ? 'practice' : 'settings');
+  return true;
+}
+
+if (getConn().url) connect();
+else { $('#loading').classList.add('hidden'); showTab('settings'); }
+</script>
+</body>
+</html>
