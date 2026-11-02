@@ -49,5 +49,7 @@
 ## 狀態（2026-11-02）
 
 - Apps Script 版已在手機實測：匯入、批改、存檔正常；網頁內麥克風被 Apps Script 擋住，因此改成這個架構。
-- GitHub 版：離線測試 82 項＋瀏覽器模擬 25 項通過；Gemini 聽錄音已用真實 API 測過（合成語音）。
-- **尚未在真實手機驗證**：錄音（Android Chrome、iPhone Safari）、跨網域呼叫 Apps Script。
+- 錄音分析：預設「仔細」（gemini-3.5-flash，約 10 秒，忙線時自動改 lite）；可切「快速」（gemini-3.5-flash-lite，約 3 秒）。回饋包含文法規則與例句、更自然的說法、四項發音分數、重音標記、語調、連音、逐字發音、練習建議。
+- 真人語調語音：gemini-3.1-flash-tts-preview（備用 2.5），🔊 正常、🐢 慢速；產生過的存在雲端硬碟「英文家教語音」資料夾重複使用。失敗時改用瀏覽器語音。
+- 測試：離線 97 項＋瀏覽器模擬 35 項通過；提示詞與語音已用真實 Gemini API 驗證（合成語音）。
+- **尚未在真實手機驗證**：錄音（Android Chrome、iPhone Safari）、iPhone 上 🔊 播放。

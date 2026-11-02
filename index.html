@@ -74,9 +74,19 @@ details summary::-webkit-details-marker{display:none}
 .file .n{flex:1;min-width:0;overflow-wrap:anywhere}
 .badge{font-size:12px;padding:1px 8px;border-radius:6px;background:var(--bg);color:var(--muted);white-space:nowrap}
 .badge.new{background:var(--mid-bg);color:var(--mid)}
-.pron{margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)}
-.pron .stars{color:var(--mid);letter-spacing:2px}
-.pron b.w{margin-right:8px}
+.sec{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--soft)}
+.sec h3{font-size:16px;margin:0 0 8px}
+.sec ol{margin:0;padding-left:22px}
+.sec ol li{margin:4px 0}
+.stars{color:var(--mid);letter-spacing:2px}
+b.w{margin-right:8px}
+.subs{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:14px;margin-bottom:8px}
+.subs div{display:flex;justify-content:space-between;gap:8px}
+.marked{font-size:17px;font-weight:600;letter-spacing:.5px}
+.kk{color:var(--muted);margin-right:4px}
+.word{border-top:1px solid var(--line);padding:8px 0}
+.speak.loading{opacity:.4}
+@media (max-width:420px){.subs{grid-template-columns:1fr}}
 #result audio{width:100%;margin:6px 0;height:36px}
 #loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);z-index:20}
 </style>
@@ -177,9 +187,15 @@ details summary::-webkit-details-marker{display:none}
     <label>API 金鑰</label>
     <input type="password" id="apiKey" placeholder="尚未設定">
     <p class="muted">到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費申請。金鑰存在你的 Apps Script 專案裡，不會出現在網頁上；已經設定過的話，這格留空就會保留原本的金鑰。</p>
-    <label>模型</label>
+    <label>錄音分析</label>
+    <select id="audioMode">
+      <option value="detail">仔細（約 10 秒，聽得出語調、重音等細節）</option>
+      <option value="fast">快速（約 3 秒）</option>
+    </select>
+    <p class="muted">選「仔細」時，如果 Gemini 忙線，會自動改用快速模式，不會一直等。</p>
+    <label>打字批改與整理課文用的模型</label>
     <input type="text" id="model">
-    <p class="muted">預設 gemini-3.5-flash-lite（批改約 1～2 秒）。想要更仔細的批改可改成 gemini-3.5-flash，但常常忙線、要等比較久。</p>
+    <p class="muted">預設 gemini-3.5-flash-lite（約 1～2 秒）。</p>
     <div class="actions"><button class="btn primary" id="saveSettings">儲存</button><button class="btn" id="testBtn">測試連線</button></div>
   </div>
   <div class="card">
@@ -295,10 +311,13 @@ function toast(msg) {
 }
 
 // ---------- Gemini ----------
-function gemini(system, user, audio) {
+function gemini(system, user, audio, model) {
   if (!hasKey) return Promise.reject(new Error('請先到「設定」輸入 Gemini API 金鑰'));
-  return run('gemini', system, user, db.settings.model || DEFAULT_MODEL, audio || null);
+  return run('gemini', system, user, model || db.settings.model || DEFAULT_MODEL, audio || null);
 }
+// 錄音分析：仔細＝完整版（約 10 秒，聽得出語調平淡等細節）；快速＝lite 版（約 3 秒）。完整版忙線時後端會自動改用 lite
+const AUDIO_MODELS = { detail: 'gemini-3.5-flash', fast: DEFAULT_MODEL };
+function audioModel() { return AUDIO_MODELS[db.settings.audioMode] || AUDIO_MODELS.detail; }
 
 const EXTRACT_PROMPT = `你會收到一篇雙語（英文＋中文）課程內容。請抽出適合做「看中文、說英文」練習的英文句子，並配上對應的中文。
 規則：
@@ -312,26 +331,40 @@ const EXTRACT_PROMPT = `你會收到一篇雙語（英文＋中文）課程內�
 const GRADE_RULES = `- 標準是「意思正確，而且英文文法正確、自然」，不要求跟課文原句一模一樣。學生的說法若也正確自然，verdict 給 correct，並在 note 說明跟原句的差別。
 - 忽略大小寫和句尾標點。
 - verdict：correct＝意思正確且沒有文法錯誤；partial＝意思大致對，但有文法、用字錯誤或漏掉部分內容；wrong＝意思不對或幾乎沒答。
-- errors：逐一列出錯誤。type 從這些選一個：文法、時態、用字、拼字、冠詞、介系詞、單複數、語序、漏字、意思錯誤、其他。wrong 填學生寫錯的片段，fix 填修正後的片段，explain 用繁體中文簡短說明為什麼錯、該怎麼記。
+- errors：逐一列出錯誤。type 從這些選一個：文法、時態、用字、拼字、冠詞、介系詞、單複數、語序、漏字、意思錯誤、其他。wrong＝學生說錯的片段，fix＝修正後的片段，explain＝用繁體中文說明為什麼錯，rule＝一句話的文法規則（台灣學生好記的說法），example＝另一個套用同規則的英文例句。
 - corrected：保留學生原本的說法，只改掉錯的地方後的完整句子。全對就和學生答案相同。
-- note：一兩句繁體中文的總評或補充（例如更自然的說法、相關用法）。`;
+- natural：1～2 個母語人士在日常對話中更常用的說法（跟課文原句、corrected 都不同的才列，沒有就給空陣列）。
+- note：一兩句繁體中文總評。`;
 
-const GRADE_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用英文寫出意思。請批改學生的英文。
+const GRADE_JSON = `"verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":"","rule":"","example":""}],"corrected":"","natural":[""],"note":""`;
+
+const GRADE_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用英文寫出意思。請批改學生的英文，給具體、可以照著改的回饋。
 規則：
 ${GRADE_RULES}
 - 學生可能用手機鍵盤語音輸入，若明顯是語音辨識的同音字問題，在 note 提醒即可，不算錯。
-只輸出 JSON：{"verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":""}],"corrected":"","note":""}`;
+只輸出 JSON：{${GRADE_JSON}}`;
 
-const AUDIO_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用說的說出英文，你會收到他的錄音。
+const AUDIO_PROMPT = `你是專業的英語口說教練，學生是台灣的成人學習者，母語是中文。學生看中文，用說的說出英文，你會收到他的錄音。請仔細聽，給具體、可以照著練的回饋。
+
 步驟：
-1. heard：逐字寫下你聽到的英文。學生講錯的地方照實寫，不要幫他修正；聽不清楚的字寫成 (?)。完全聽不到英文就留空字串。
-2. 用 heard 批改文法和用字，規則：
+1. heard：逐字寫下你聽到的英文。講錯、唸錯的地方照實寫，不要幫他修正；聽不清楚的字寫成 (?)。完全聽不到英文就留空字串。
+
+2. 用 heard 批改文法和用字：
 ${GRADE_RULES}
-3. pronunciation：評估發音。
-   - score：1～5（5＝清楚自然，3＝聽得懂但有明顯口音或錯誤，1＝很難聽懂）。
-   - items：列出唸不清楚或唸錯的字，每項有 word、issue（用繁體中文說明哪裡不對，例如重音位置、母音、字尾子音沒發出來）、tip（怎麼唸比較好，可附 KK 音標）。沒有問題就給空陣列。
-   - comment：一句繁體中文總評，包含流暢度和語調。
-只輸出 JSON：{"heard":"","verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":""}],"corrected":"","note":"","pronunciation":{"score":3,"items":[{"word":"","issue":"","tip":""}],"comment":""}}`;
+
+3. pronunciation（說明全部用繁體中文，音標用 KK 音標，不要出現中文、英文以外的文字）：
+- score：整體 1～5（5＝清楚自然，3＝聽得懂但有明顯口音或錯誤，1＝很難聽懂）。
+- detail：四個分項各 1～5 分：accuracy（單字發音準確）、fluency（流暢度：停頓、卡住、重複）、intonation（語調起伏）、rhythm（重音與節奏）。
+- items：逐字檢查，列出每一個唸不準的字：word、heard_as（聽起來像什麼，只能用英文字母拼法或 KK 音標）、issue（哪裡不對：母音、子音、字尾子音沒發、多加母音、重音位置等）、tip（具體怎麼調整嘴型、舌位或發音）、kk（正確 KK 音標）。台灣學生常見問題要特別注意：th 發成 s/z、v 發成 b/f、字尾 d/t/s 吞掉、r/l 不分、長短母音不分（i/ɪ、u/ʊ）、æ 和 ɛ 不分、在子音後多加「ㄜ」。沒有問題就給空陣列。
+- stress：marked＝把課文原句改寫成標出重音的版本，重讀的音節用全大寫，例如 "I WENT to the LIbrary YESterday."；comment＝學生的重音跟這個差在哪。
+- intonation：這句應有的語調（例如直述句結尾下降、Yes/No 問句結尾上升），以及學生實際的語調哪裡不同。語調平淡、每個字一樣重也要指出來。
+- linking：這句裡母語人士會連在一起唸的地方：phrase（原文）、how（實際唸法，例如 "wen-tə"）、comment（學生有沒有連起來）。沒有就給空陣列。
+- comment：一句總評。
+
+4. practice：2～3 個具體的練習步驟，每個是一句繁體中文的行動指示，針對這次最需要改的問題，可以提到按「🐢 慢速」跟讀（例如：「先按 🐢 慢速跟讀三次，特別注意 library 的 br 要連在一起」）。
+
+只輸出 JSON：
+{"heard":"",${GRADE_JSON},"pronunciation":{"score":3,"detail":{"accuracy":3,"fluency":3,"intonation":3,"rhythm":3},"items":[{"word":"","heard_as":"","issue":"","tip":"","kk":""}],"stress":{"marked":"","comment":""},"intonation":"","linking":[{"phrase":"","how":"","comment":""}],"comment":""},"practice":[""]}`;
 
 // ---------- 分頁 ----------
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -475,33 +508,63 @@ function schedule(it, verdict, ans) {
   save();
 }
 
+// lite 模型偶爾會用韓文、日文拼「聽起來像」，這種就不顯示
+const FOREIGN_SCRIPT = /[가-힯぀-ヿ一-鿿]/;
+const PRON_DETAIL = { accuracy: '單字發音', fluency: '流暢度', intonation: '語調', rhythm: '重音節奏' };
+const list = a => (Array.isArray(a) ? a : []).filter(Boolean);
+function stars(n) { const s = clampScore(n); return '★'.repeat(s) + '☆'.repeat(5 - s); }
+function sayBtns(text, withSlow) {
+  return `<button class="speak" title="真人語調朗讀" data-say="${esc(text)}">🔊</button>` +
+    (withSlow ? `<button class="speak" title="慢速朗讀" data-say="${esc(text)}" data-slow="1">🐢</button>` : '');
+}
+
 function renderResult(it, ans, r, usedHint) {
-  const errs = (r.errors || []).map(e => `
+  const errs = list(r.errors).map(e => `
     <div class="err"><span class="tag">${esc(e.type || '錯誤')}</span>
       ${e.wrong ? `<del>${esc(e.wrong)}</del> → ` : ''}<ins>${esc(e.fix)}</ins>
-      <div class="muted">${esc(e.explain)}</div></div>`).join('');
+      <div>${esc(e.explain)}</div>
+      ${e.rule ? `<div class="muted">📌 ${esc(e.rule)}</div>` : ''}
+      ${e.example ? `<div class="muted">例：${esc(e.example)} ${sayBtns(e.example)}</div>` : ''}</div>`).join('');
   const showCorrected = r.corrected && r.corrected.trim() !== ans.trim();
-  const p = r.pronunciation;
-  const pron = p ? `
-    <div class="pron">
-      <div><b>發音</b> <span class="stars">${'★'.repeat(clampScore(p.score))}${'☆'.repeat(5 - clampScore(p.score))}</span></div>
-      ${(p.items || []).map(x => `<div class="line">🔸 <b class="w">${esc(x.word)}</b>${esc(x.issue)}<div class="muted">${esc(x.tip)}</div></div>`).join('')}
-      ${p.comment ? `<div class="muted">${esc(p.comment)}</div>` : ''}
-    </div>` : '';
+  const natural = list(r.natural).filter(s => s.trim() !== it.en.trim());
   $('#result').innerHTML = `
     <span class="verdict v-${r.verdict}">${VERDICT[r.verdict]}</span>
     ${usedHint ? '<span class="muted">（有用提示，下次會提早複習）</span>' : ''}
     ${ans ? `<div class="line"><b>${r.audio ? 'Gemini 聽到' : '你的回答'}</b>${esc(ans)}</div>` : ''}
-    ${r.audio && session.recUrl ? `<audio controls src="${session.recUrl}"></audio>` : ''}
+    ${r.audio && session.recUrl ? `<div class="line"><b>你的錄音</b></div><audio controls src="${session.recUrl}"></audio>` : ''}
     ${errs}
-    ${showCorrected ? `<div class="line"><b>修正後</b><ins>${esc(r.corrected)}</ins></div>` : ''}
-    <div class="line"><b>課文原句</b>${esc(it.en)} <button class="speak" title="朗讀" data-say="${esc(it.en)}">🔊</button></div>
+    ${showCorrected ? `<div class="line"><b>修正後</b><ins>${esc(r.corrected)}</ins> ${sayBtns(r.corrected)}</div>` : ''}
+    <div class="line"><b>課文原句</b>${esc(it.en)} ${sayBtns(it.en, true)}</div>
+    ${natural.length ? `<div class="line"><b>更自然的說法</b>${natural.map(s => `<div>${esc(s)} ${sayBtns(s)}</div>`).join('')}</div>` : ''}
     ${r.note ? `<div class="line muted">💡 ${esc(r.note)}</div>` : ''}
-    ${pron}`;
+    ${renderPron(r.pronunciation, it)}
+    ${list(r.practice).length ? `<div class="sec"><h3>📝 練習建議</h3><ol>${list(r.practice).map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}`;
   $('#result').classList.remove('hidden');
 }
+
+function renderPron(p, it) {
+  if (!p) return '';
+  const d = p.detail || {};
+  const stress = p.stress || {};
+  return `<div class="sec pron">
+    <h3>🗣️ 發音 <span class="stars">${stars(p.score)}</span></h3>
+    ${Object.keys(PRON_DETAIL).some(k => d[k]) ? `<div class="subs">${Object.entries(PRON_DETAIL).map(([k, name]) =>
+      `<div><span>${name}</span><span class="stars">${stars(d[k])}</span></div>`).join('')}</div>` : ''}
+    ${stress.marked ? `<div class="line"><b>重音</b><span class="marked">${esc(stress.marked)}</span> ${sayBtns(it.en, true)}
+      ${stress.comment ? `<div class="muted">${esc(stress.comment)}</div>` : ''}</div>` : ''}
+    ${p.intonation ? `<div class="line"><b>語調</b>${esc(p.intonation)}</div>` : ''}
+    ${list(p.linking).length ? `<div class="line"><b>連音</b>${list(p.linking).map(x =>
+      `<div>🔗 ${esc(x.phrase)} → <b class="w">${esc(x.how)}</b><span class="muted">${esc(x.comment)}</span></div>`).join('')}</div>` : ''}
+    ${list(p.items).map(x => `<div class="word">
+      <div>🔸 <b class="w">${esc(x.word)}</b>${x.kk ? `<span class="kk">${esc(x.kk)}</span>` : ''} ${x.word ? sayBtns(x.word, true) : ''}</div>
+      ${x.heard_as && !FOREIGN_SCRIPT.test(x.heard_as) ? `<div class="muted">聽起來像：${esc(x.heard_as)}</div>` : ''}
+      <div>${esc(x.issue)}</div>
+      ${x.tip ? `<div class="muted">👉 ${esc(x.tip)}</div>` : ''}</div>`).join('')}
+    ${p.comment ? `<div class="muted" style="margin-top:8px">${esc(p.comment)}</div>` : ''}
+  </div>`;
+}
 function clampScore(n) { return Math.max(1, Math.min(5, Math.round(Number(n) || 3))); }
-$('#result').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) speak(b.dataset.say); });
+$('#result').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) playVoice(b, b.dataset.say, !!b.dataset.slow); });
 $('#nextBtn').onclick = next;
 function next() {
   if (!session) return;
@@ -596,10 +659,10 @@ async function gradeRecording(blob) {
   const it = current();
   if (session.recUrl) URL.revokeObjectURL(session.recUrl);
   session.recUrl = URL.createObjectURL(blob);
-  setBusy(true, 'Gemini 聽你說…');
+  setBusy(true, db.settings.audioMode === 'fast' ? 'Gemini 聽你說…' : 'Gemini 仔細聽你說…（約 10 秒）');
   try {
     const data = await blobToWavBase64(blob);
-    const r = await gemini(AUDIO_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的錄音如下。`, { mime: 'audio/wav', data });
+    const r = await gemini(AUDIO_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的錄音如下。`, { mime: 'audio/wav', data }, audioModel());
     const heard = String(r.heard || '').trim();
     if (!heard) { setBusy(false); toast('沒有聽到英文，請再錄一次'); return; }
     if (!VERDICT[r.verdict]) r.verdict = 'partial';
@@ -664,12 +727,69 @@ function bytesToBase64(bytes) {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
-function speak(text) {
+// 瀏覽器內建語音：Gemini 語音失敗時的備案
+function speak(text, slow) {
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US'; u.rate = 0.9;
+  u.lang = 'en-US'; u.rate = slow ? 0.7 : 0.9;
   speechSynthesis.speak(u);
+}
+
+// ---------- 真人語調語音（Gemini） ----------
+// 同一個 <audio> 一直重用：iPhone 只允許「使用者點過的」播放器在等待網路後播放，第一次點擊時先用無聲音檔解鎖
+const voicePlayer = new Audio();
+const voiceCache = new Map();
+let voiceUnlocked = false;
+function unlockVoice() {
+  if (voiceUnlocked) return;
+  voiceUnlocked = true;
+  voicePlayer.src = 'data:audio/wav;base64,' + bytesToBase64(encodeWav(new Float32Array(160), 16000));
+  voicePlayer.play().catch(() => {});
+}
+async function playVoice(btn, text, slow) {
+  unlockVoice();
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  const k = (slow ? 'slow|' : 'normal|') + text;
+  let url = voiceCache.get(k);
+  if (!url) {
+    if (btn.classList.contains('loading')) return;
+    btn.classList.add('loading');
+    try {
+      url = URL.createObjectURL(voiceBlob(await run('tts', text, !!slow)));
+      voiceCache.set(k, url);
+    } catch (e) {
+      toast(e.message + '（先用瀏覽器語音）');
+      speak(text, slow);
+      return;
+    } finally {
+      btn.classList.remove('loading');
+    }
+  }
+  voicePlayer.pause();
+  voicePlayer.src = url;
+  voicePlayer.play().catch(() => toast('語音準備好了，請再按一次'));
+}
+// Gemini 回傳 WAV 或原始 PCM（audio/L16;rate=24000），PCM 要自己加上 WAV 檔頭
+function voiceBlob(a) {
+  const bytes = base64ToBytes(a.data);
+  if (/wav/i.test(a.mime)) return new Blob([bytes], { type: 'audio/wav' });
+  const rate = +((a.mime || '').match(/rate=(\d+)/) || [])[1] || 24000;
+  return new Blob([pcmWavHeader(bytes.length, rate), bytes], { type: 'audio/wav' });
+}
+function pcmWavHeader(len, rate) {
+  const v = new DataView(new ArrayBuffer(44));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + len, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, len, true);
+  return new Uint8Array(v.buffer);
+}
+function base64ToBytes(b64) {
+  const s = atob(b64), out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
 }
 
 // ---------- 課文 ----------
@@ -832,11 +952,13 @@ function renderSettings() {
   $('#apiKey').value = '';
   $('#apiKey').placeholder = hasKey ? '已設定（要更換才需要重新輸入）' : '尚未設定';
   $('#model').value = db.settings.model || DEFAULT_MODEL;
+  $('#audioMode').value = AUDIO_MODELS[db.settings.audioMode] ? db.settings.audioMode : 'detail';
 }
 async function saveSettings() {
   const key = $('#apiKey').value.trim();
   if (key) { hasKey = await run('setApiKey', key); $('#apiKey').value = ''; }
   db.settings.model = $('#model').value.trim() || DEFAULT_MODEL;
+  db.settings.audioMode = $('#audioMode').value;
   save();
   renderSettings();
 }

@@ -5,10 +5,14 @@
 const DATA_NAME = '英文家教資料.json';
 const MIME_DOC = 'application/vnd.google-apps.document';
 const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const FALLBACK_MODEL = 'gemini-flash-lite-latest';
+const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
+// 語音：3.1 版只唸句子、長度正常；2.5 版備用（3.8-lite 會把指示也唸出來，不要用）
+const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
+const TTS_VOICE = 'Kore';
+const TTS_FOLDER_NAME = '英文家教語音';
 
 // 網頁可以呼叫的函式
-const API = { loadData, saveData, setApiKey, listDriveFiles, getDriveText, gemini };
+const API = { loadData, saveData, setApiKey, listDriveFiles, getDriveText, gemini, tts };
 
 function doGet() {
   return ContentService.createTextOutput('英文家教後端運作中');
@@ -165,8 +169,8 @@ function gemini(system, user, model, audio) {
   model = String(model || '').trim() || 'gemini-3.5-flash';
   const parts = [{ text: user }];
   if (audio && audio.data) parts.push({ inlineData: { mimeType: audio.mime || 'audio/wav', data: audio.data } });
-  // 模型忙線（503）時自動重試，最後改用備用模型
-  const tries = [model, model, FALLBACK_MODEL];
+  // 模型忙線（503）時馬上改用備用模型；本身就是備用模型時等一下再試一次
+  const tries = model === FALLBACK_MODEL ? [model, model] : [model, FALLBACK_MODEL];
   let code, data;
   for (let i = 0; i < tries.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + tries[i] + ':generateContent', {
@@ -183,7 +187,7 @@ function gemini(system, user, model, audio) {
     code = r.getResponseCode();
     try { data = JSON.parse(r.getContentText()); } catch (e) { data = {}; }
     if (code !== 503) break;
-    if (i < tries.length - 1) Utilities.sleep(1500 * (i + 1));
+    if (i < tries.length - 1 && tries[i + 1] === tries[i]) Utilities.sleep(1500);
   }
   if (code !== 200) {
     const msg = (data.error && data.error.message) || ('HTTP ' + code);
@@ -196,4 +200,66 @@ function gemini(system, user, model, audio) {
   const text = out.filter(p => !p.thought).map(p => p.text || '').join('');
   if (!text) throw new Error('Gemini 沒有回應內容，請再試一次');
   return JSON.parse(text.replace(/^\s*```(json)?/, '').replace(/```\s*$/, ''));
+}
+
+// ---------- 語音 ----------
+// 用 Gemini 產生真人語調的發音。產生過的存在雲端硬碟「英文家教語音」資料夾，同一句下次直接拿，不用再等、也不耗額度
+// 回傳 { mime, data }：mime 可能是 audio/wav 或 audio/L16;rate=24000（網頁會自己轉成 WAV）
+function tts(text, slow) {
+  text = String(text || '').trim();
+  if (!text) throw new Error('沒有要唸的句子');
+  const name = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, TTS_VOICE + '|' + (slow ? 'slow' : 'normal') + '|' + text)
+    .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('') + '.json';
+  const folder = ttsFolder_();
+  const hit = folder.getFilesByName(name);
+  if (hit.hasNext()) return JSON.parse(hit.next().getBlob().getDataAsString());
+
+  const key = props_().getProperty('GEMINI_API_KEY');
+  if (!key) throw new Error('請先到「設定」輸入 Gemini API 金鑰');
+  const prompt = slow
+    ? 'Read this slowly and clearly for an English learner, keeping natural American English intonation: ' + text
+    : 'Say this naturally, like a friendly native American English speaker in everyday conversation: ' + text;
+  let code, data;
+  for (let i = 0; i < TTS_MODELS.length; i++) {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODELS[i] + ':generateContent', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'x-goog-api-key': key },
+      payload: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: TTS_VOICE } } }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+    code = r.getResponseCode();
+    try { data = JSON.parse(r.getContentText()); } catch (e) { data = {}; }
+    if (code === 200) break;
+  }
+  if (code !== 200) {
+    if (code === 429) throw new Error('今天的語音額度用完了，先改用瀏覽器語音');
+    throw new Error('語音產生失敗：' + ((data.error && data.error.message) || ('HTTP ' + code)));
+  }
+  const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+  const audio = parts.filter(p => p.inlineData)[0];
+  if (!audio) throw new Error('語音產生失敗，請再試一次');
+  const result = { mime: audio.inlineData.mimeType, data: audio.inlineData.data };
+  folder.createFile(name, JSON.stringify(result), 'application/json');
+  return result;
+}
+
+function ttsFolder_() {
+  const p = props_();
+  const id = p.getProperty('TTS_FOLDER_ID');
+  if (id) {
+    try {
+      const f = DriveApp.getFolderById(id);
+      if (!f.isTrashed()) return f;
+    } catch (e) {}
+  }
+  const f = DriveApp.createFolder(TTS_FOLDER_NAME);
+  p.setProperty('TTS_FOLDER_ID', f.getId());
+  return f;
 }
