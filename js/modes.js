@@ -36,10 +36,11 @@ function sayRow(text) {
     `<button class="btn" data-say="${esc(text)}" data-slow="1">🐢 慢速</button></div>`;
 }
 $('#modeArea').addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) playVoice(b, b.dataset.say, !!b.dataset.slow); });
-// 下一題如果要聽，先把語音準備好
+// 後面 3 題如果要聽，先把語音準備好，輪到時不用等
 function preloadNext() {
-  const nx = session.queue[session.i + 1];
-  if (nx && ['listen', 'shadow'].includes(modeFor(nx, session.type))) loadVoice(nx.en).catch(() => {});
+  session.queue.slice(session.i + 1, session.i + 4).forEach(nx => {
+    if (['listen', 'shadow'].includes(modeFor(nx, session.type))) loadVoice(nx.en).catch(() => {});
+  });
 }
 
 // ---------- 👂 聽音選意思 ----------

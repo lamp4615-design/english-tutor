@@ -110,6 +110,12 @@ async function submit() {
   const ans = $('#answer').value.trim();
   if (!ans) { toast('請先輸入英文，或按 🎤 錄音'); return; }
   const it = current();
+  // 和課文原句一模一樣（不看大小寫、標點）就不用等 Gemini
+  const norm = s => s.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (norm(ans) === norm(it.en)) {
+    finish(ans, { verdict: 'correct', good: '和課文原句一模一樣，完全正確！', errors: [], corrected: '', natural: [], note: '' });
+    return;
+  }
   setBusy(true);
   try {
     const r = await gemini(GRADE_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的英文：${ans}`);

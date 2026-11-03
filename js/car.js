@@ -25,7 +25,7 @@ function joinSamples(parts) {
 const silence = sec => new Float32Array(Math.round(sec * CAR_RATE));
 async function carClip(it, o) {
   const [zh, en, slow] = await Promise.all([
-    run('tts', it.zh, false, 'zh'), run('tts', it.en, false), o.twice ? run('tts', it.en, true) : null
+    voiceData(it.zh, false, 'zh'), voiceData(it.en, false), o.twice ? voiceData(it.en, true) : null
   ]);
   const parts = [voiceSamples(zh), silence(o.think), voiceSamples(en)];
   if (slow) parts.push(silence(1.2), voiceSamples(slow));

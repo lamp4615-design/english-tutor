@@ -8,6 +8,7 @@ const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const OLD_DEFAULT_MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxHlvAinyEKuBxo2rwCAnjzetTUu9JFrPw9Wtrp9wAPpFpsRVtKWjiqhyI_VL5QTfUV/exec';
 const CONN_KEY = 'english-tutor.conn';
+const DATA_KEY = 'english-tutor.data';   // 上次的資料存在這台裝置，打開時先用，不用等雲端
 const MAX_REC_SEC = 30;
 
 let db = { lessons: [], settings: {}, stats: { days: {} } };
@@ -27,7 +28,20 @@ function setConn(c) {
 }
 
 // 呼叫 Code.gs 的函式。Content-Type 用 text/plain，才不會被瀏覽器擋（CORS 預檢）
+// 記錄每種呼叫花了多久（設定頁的「等待時間」），找出哪一步最慢
+const perf = {};
+function logPerf(name, ms) {
+  const a = perf[name] || (perf[name] = []);
+  a.push(ms);
+  if (a.length > 20) a.shift();
+}
 async function run(fn, ...args) {
+  const t0 = performance.now();
+  const r = await callBackend(fn, args);
+  logPerf(fn === 'gemini' ? 'gemini:' + args[2] : fn === 'tts' && args[2] === 'zh' ? 'tts:zh' : fn, performance.now() - t0);
+  return r;
+}
+async function callBackend(fn, args) {
   const { url, token } = getConn();
   if (!url || !token) throw new Error('請先到「設定」填寫後端網址和通行碼');
   let res;
@@ -55,11 +69,20 @@ function applyData(d) {
   rev = d.rev; hasKey = d.hasKey;
 }
 
+function cacheData() {
+  try { localStorage.setItem(DATA_KEY, JSON.stringify({ json: JSON.stringify(db), rev, hasKey })); } catch (e) {}
+}
+function readCache() {
+  try { const c = JSON.parse(localStorage.getItem(DATA_KEY)); return c && c.json ? c : null; } catch (e) { return null; }
+}
+
 // 存檔：等使用者停下來 0.6 秒再一次寫進雲端；同時間只送一筆
+// 還沒跟雲端同步好之前（先用這台裝置上次的資料時）只記下「有改過」，同步好再一起存
 let saveTimer = null, saving = false, dirty = false;
 function save() {
-  if (!loaded) return;
   dirty = true;
+  cacheData();
+  if (!loaded) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flush, 600);
 }
@@ -68,9 +91,10 @@ async function flush() {
   saving = true; dirty = false;
   try {
     const r = await run('saveData', JSON.stringify(db), rev);
-    if (r.ok) rev = r.rev;
+    if (r.ok) { rev = r.rev; cacheData(); }
     else {
       applyData(await run('loadData'));
+      cacheData();
       toast('其他裝置剛更新過資料，已重新載入最新版本');
       if (!session) { renderSetup(); renderLessons(); }
     }

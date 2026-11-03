@@ -9,6 +9,21 @@ function renderSettings() {
   $('#model').value = db.settings.model || DEFAULT_MODEL;
   $('#audioMode').value = AUDIO_MODELS[db.settings.audioMode] ? db.settings.audioMode : 'detail';
   $('#goal').value = String(goal());
+  renderPerf();
+}
+const PERF_NAMES = { loadData: '讀取雲端資料（背景）', saveData: '存到雲端（背景，不用等）', tts: '語音（第一次，經過雲端）', 'tts:zh': '中文語音（開車聽）',
+  'tts（這台裝置）': '語音（已存在這台裝置）', listDriveFiles: '讀取雲端硬碟資料夾', getDriveText: '讀取課文檔案', setApiKey: '儲存金鑰' };
+function perfName(k) {
+  if (!k.startsWith('gemini:')) return PERF_NAMES[k] || k;
+  const m = k.slice(7);
+  return m === AUDIO_MODELS.detail ? `Gemini 錄音分析（${m}）` : `Gemini 批改、出題、對話（${m}）`;
+}
+function renderPerf() {
+  const rows = Object.entries(perf).filter(([, a]) => a.length);
+  $('#perfList').innerHTML = rows.length
+    ? `<table><tr><th>步驟</th><th>次數</th><th>平均</th><th>最久</th></tr>${rows.map(([k, a]) =>
+      `<tr><td>${esc(perfName(k))}</td><td>${a.length}</td><td>${(a.reduce((x, y) => x + y, 0) / a.length / 1000).toFixed(1)} 秒</td><td>${(Math.max(...a) / 1000).toFixed(1)} 秒</td></tr>`).join('')}</table>`
+    : '<p class="muted">還沒有紀錄，練習幾題後再回來看。</p>';
 }
 $('#goal').onchange = () => { db.stats.goal = +$('#goal').value; save(); toast('每日目標已更新'); };
 async function saveSettings() {
@@ -62,21 +77,46 @@ $('#connectBtn').onclick = async () => {
 };
 
 // 讀取雲端資料；還沒讀到之前不存檔，避免空資料蓋掉雲端
+// 打開 App：這台裝置有上次的資料就先顯示，馬上能用；雲端的資料在背景讀，有更新再換上
 async function connect() {
-  $('#loading').classList.remove('hidden');
-  try {
-    applyData(await run('loadData'));
-    loaded = true;
-  } catch (e) {
-    $('#loading').classList.add('hidden');
-    showTab('settings');
-    toast(e.message);
-    return false;
-  }
+  const cached = readCache();
+  if (cached) { applyData(cached); startUI(); }
+  else $('#loading').classList.remove('hidden');
+  return syncFromServer(!!cached);
+}
+function startUI() {
   $('#loading').classList.add('hidden');
   $('#folderUrls').value = (db.settings.folders || []).join('\n');
   driveGroups = null;
   showTab(hasKey ? 'practice' : 'settings');
+}
+async function syncFromServer(quick) {
+  let d;
+  try {
+    d = await run('loadData');
+  } catch (e) {
+    $('#loading').classList.add('hidden');
+    if (quick) {
+      toast('暫時連不到雲端，先用這台裝置上次的資料，稍後會自動同步');
+      setTimeout(() => syncFromServer(true), 15000);
+      return true;
+    }
+    showTab('settings');
+    toast(e.message);
+    return false;
+  }
+  if (!quick || d.rev !== rev) {
+    // 雲端比這台裝置新（別的裝置練過）：以雲端為準
+    if (quick && dirty) toast('其他裝置有更新，已換成最新的資料');
+    dirty = false;
+    applyData(d);
+    if (!quick) startUI();
+    else if (!session && !car && !chat) showTab((document.querySelector('nav button.on') || {}).dataset.tab || 'practice');
+  } else hasKey = d.hasKey;
+  loaded = true;
+  cacheData();
+  if (dirty) save();
+  else if (!session) renderToday();   // 讀到雲端後才能寫教練信
   return true;
 }
 

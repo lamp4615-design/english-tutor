@@ -168,10 +168,24 @@ async function playVoice(btn, text, slow) {
 function loadVoice(text, slow) {
   const k = (slow ? 'slow|' : 'normal|') + text;
   if (!voiceCache.has(k)) {
-    voiceCache.set(k, run('tts', text, !!slow).then(a => URL.createObjectURL(voiceBlob(a)))
+    voiceCache.set(k, voiceData(text, slow).then(a => URL.createObjectURL(voiceBlob(a)))
       .catch(e => { voiceCache.delete(k); throw e; }));
   }
   return voiceCache.get(k);
+}
+// 語音也存在這台裝置（瀏覽器的 Cache Storage）：同一句第二次起直接播，不用再經過 Apps Script
+const VOICE_STORE = 'english-tutor-voices';
+async function voiceData(text, slow, lang) {
+  const key = location.origin + '/__voice/' + encodeURIComponent([lang || 'en', slow ? 'slow' : 'normal', text].join('|'));
+  let store = null;
+  try {
+    store = await caches.open(VOICE_STORE);
+    const hit = await store.match(key);
+    if (hit) { logPerf('tts（這台裝置）', 0); return await hit.json(); }
+  } catch (e) {}
+  const a = await run('tts', text, !!slow, ...(lang ? [lang] : []));
+  if (store) store.put(key, new Response(JSON.stringify(a), { headers: { 'Content-Type': 'application/json' } })).catch(() => {});
+  return a;
 }
 // Gemini 回傳 WAV 或原始 PCM（audio/L16;rate=24000），PCM 要自己加上 WAV 檔頭
 function voiceBlob(a) {
