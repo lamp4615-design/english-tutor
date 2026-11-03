@@ -1,6 +1,6 @@
 // 每天的紀錄、連續天數、熟練度、今日任務、練習日曆、鼓勵
 // ---------- 每天的紀錄、連續天數、熟練度 ----------
-// stats.days['2026-11-03'] = { n 練了幾句, ok 完全正確, err {錯誤類型: 次數}, car 開車聽秒數 }
+// stats.days['2026-11-03'] = { n 練了幾句, ok 完全正確, err {錯誤類型: 次數}, car 開車聽秒數, pr／prn 發音總分／次數 }
 // 連續天數不另外存，每次從 days 算，手機和電腦一定一致
 const CAR_ACTIVE_SEC = 600;
 const LEVELS = [['🌱', '新句子'], ['🌿', '學習中'], ['🌳', '熟悉'], ['⭐', '精熟']];
@@ -63,6 +63,8 @@ function logAnswer(r) {
   s.n++;
   if (r.verdict === 'correct') s.ok++;
   list(r.errors).forEach(e => { const t = e.type || '其他'; s.err[t] = (s.err[t] || 0) + 1; });
+  // 發音分數：pr＝總分、prn＝次數，給「進度」畫趨勢
+  if (r.pronunciation) { s.pr = (s.pr || 0) + clampScore(r.pronunciation.score); s.prn = (s.prn || 0) + 1; }
 }
 function goal() { return +db.stats.goal || 10; }
 
@@ -110,6 +112,8 @@ function renderToday() {
   const c = levelCounts(allItems('all'));
   $('#levels').innerHTML = LEVELS.map(([icon, name], i) => `<span>${icon} ${name} ${c[i]}</span>`).join('');
   renderCalendar(st);
+  renderLetter();
+  ensureLetter();
 }
 $('#todayBtn').onclick = () => {
   const p = todayPlan();

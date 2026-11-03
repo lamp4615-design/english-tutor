@@ -44,10 +44,11 @@ $('#startBtn').onclick = () => {
 };
 
 // ---------- 作答 ----------
-// type：smart＝依熟練度自動選題型，或指定一種題型
-function startSession(queue, type = 'smart') {
+// type：smart＝依熟練度自動選題型，或指定一種題型；intro：每題上方的提醒（弱點專練的規則）
+function startSession(queue, type = 'smart', intro = '') {
   unlockVoice();   // 在按鈕的點擊裡先解鎖播放器，聽力題才能自動播放
-  session = { queue, i: 0, results: [], before: snapshot(), type };
+  session = { queue, i: 0, results: [], before: snapshot(), type, intro };
+  $('#letterCard').classList.add('hidden');
   $('#home').classList.add('hidden');
   $('#summary').classList.add('hidden');
   $('#quiz').classList.remove('hidden');
@@ -62,6 +63,8 @@ function showQuestion() {
   const mode = session.mode = modeFor(it, session.type), m = MODES[mode];
   $('#progText').textContent = `第 ${session.i + 1} 題 / 共 ${n} 題`;
   $('#progBar').style.width = (session.i / n * 100) + '%';
+  $('#qIntro').textContent = session.intro;
+  $('#qIntro').classList.toggle('hidden', !session.intro);
   $('#qMode').textContent = `${m.icon} ${m.name}`;
   $('#qPrompt').textContent = m.prompt;
   $('#qZh').textContent = it.zh;
@@ -251,8 +254,8 @@ function showSummary() {
   $('#quiz').classList.add('hidden');
   $('#summary').classList.remove('hidden');
   const missedItems = missed.map(x => x.item);
-  const type = session.type;
-  if (missed.length) $('#retryBtn').onclick = () => startSession(missedItems, type);
+  const { type, intro } = session;
+  if (missed.length) $('#retryBtn').onclick = () => startSession(missedItems, type, intro);
   $('#homeBtn').onclick = endSession;
 }
 function endSession() {

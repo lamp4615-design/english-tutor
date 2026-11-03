@@ -1,9 +1,11 @@
 // 錄音、音檔轉換、朗讀（Gemini 語音＋瀏覽器語音）
 // ---------- 錄音 ----------
 // 按一下開始錄，再按一下停止；停止後轉成 WAV 交給 Gemini 聽寫、批改、評發音
-$('#micBtn').onclick = () => { if (rec) rec.recorder.stop(); else startRecording(); };
+// 錄音鈕不只一個（練習、情境對話）：btn＝錄音鈕、lock＝錄音時要停用的元素、onBlob＝錄好後要做什麼
+const PRACTICE_REC = { btn: '#micBtn', lock: ['#submitBtn', '#hintBtn', '#skipBtn', '#answer'], onBlob: b => gradeRecording(b) };
+$('#micBtn').onclick = () => { if (rec) rec.recorder.stop(); else startRecording(PRACTICE_REC); };
 
-async function startRecording() {
+async function startRecording(t = PRACTICE_REC) {
   if (!navigator.mediaDevices || !window.MediaRecorder) { toast('這個瀏覽器不支援錄音，請改用打字'); return; }
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
@@ -15,29 +17,28 @@ async function startRecording() {
     clearInterval(rec.timer);
     const cancelled = rec.cancelled;
     rec = null;
-    setRecording(false);
+    setRecording(false, t);
     if (cancelled) return;
     if (Date.now() - started < 600) { toast('錄音太短，請按住說完整句再停止'); return; }
-    gradeRecording(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }));
+    t.onBlob(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }));
   };
   rec = { recorder, stream, cancelled: false, timer: setInterval(() => {
     const sec = Math.floor((Date.now() - started) / 1000);
-    $('#micBtn').textContent = `■ 停止 0:${String(sec).padStart(2, '0')}`;
+    $(t.btn).textContent = `■ 停止 0:${String(sec).padStart(2, '0')}`;
     if (sec >= MAX_REC_SEC) recorder.stop();
   }, 250) };
   recorder.start();
-  setRecording(true);
+  setRecording(true, t);
 }
 function cancelRecording() {
   if (!rec) return;
   rec.cancelled = true;
   rec.recorder.stop();
 }
-function setRecording(on) {
-  ['#submitBtn', '#hintBtn', '#skipBtn'].forEach(s => $(s).disabled = on);
-  $('#answer').disabled = on;
-  $('#micBtn').classList.toggle('on', on);
-  $('#micBtn').textContent = on ? '■ 停止 0:00' : '🎤 錄音';
+function setRecording(on, t = PRACTICE_REC) {
+  t.lock.forEach(s => $(s).disabled = on);
+  $(t.btn).classList.toggle('on', on);
+  $(t.btn).textContent = on ? '■ 停止 0:00' : '🎤 錄音';
 }
 
 async function gradeRecording(blob) {

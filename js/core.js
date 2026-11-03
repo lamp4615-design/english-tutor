@@ -174,8 +174,9 @@ ${PRON_RULES}
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 function showTab(name) {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
-  ['practice', 'lessons', 'settings'].forEach(t => $('#tab-' + t).classList.toggle('hidden', t !== name));
+  ['practice', 'progress', 'lessons', 'settings'].forEach(t => $('#tab-' + t).classList.toggle('hidden', t !== name));
   if (name === 'practice') renderSetup();
+  if (name === 'progress') renderProgress();
   if (name === 'lessons') { renderLessons(); if (loaded && !driveGroups && folderList().length) loadFolders(); }
   if (name === 'settings') renderSettings();
 }

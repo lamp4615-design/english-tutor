@@ -16,13 +16,13 @@
 :root{
   --bg:#f6f5f2; --card:#ffffff; --text:#1f2328; --muted:#6b7280; --line:#e3e1dc;
   --accent:#2563eb; --accent-text:#fff; --ok:#15803d; --ok-bg:#dcfce7; --mid:#a16207; --mid-bg:#fef3c7;
-  --bad:#b91c1c; --bad-bg:#fee2e2; --soft:#eef2ff;
+  --bad:#b91c1c; --bad-bg:#fee2e2; --soft:#eef2ff; --spark:#bfdbfe;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#16181d; --card:#1f2229; --text:#e6e6e6; --muted:#9ca3af; --line:#33363e;
     --accent:#60a5fa; --accent-text:#0b1220; --ok:#4ade80; --ok-bg:#14301f; --mid:#fbbf24; --mid-bg:#3a2e10;
-    --bad:#f87171; --bad-bg:#3b1616; --soft:#1e2a44;
+    --bad:#f87171; --bad-bg:#3b1616; --soft:#1e2a44; --spark:#334a6e;
   }
 }
 *{box-sizing:border-box}
@@ -144,6 +144,40 @@ b.w{margin-right:8px}
 .cloze input.ok{border-color:var(--ok);color:var(--ok)}
 .cloze input.no{border-color:var(--bad);color:var(--bad)}
 .shadow-en{font-size:21px;font-weight:600;margin:2px 0 8px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0}
+.tile .lab{font-size:13px;color:var(--muted)}
+.tile .val{font-size:24px;font-weight:600}
+.tile .delta{font-size:13px}
+.up{color:var(--ok)} .down{color:var(--bad)} .flat{color:var(--muted)}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .dot{fill:var(--accent);stroke:var(--card);stroke-width:2}
+.chart .hit{fill:transparent;cursor:default}
+.chart .hit:hover+.dot,.chart .hit:focus+.dot{r:6}
+.chart .endlab{fill:var(--text);font-size:12px;font-weight:600}
+.chart .col{fill:var(--spark)} .chart .col.now{fill:var(--accent)}
+.etrend{display:grid;grid-template-columns:5.5em 96px 1fr;align-items:end;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.etrend .t{font-weight:600;align-self:center}
+.etrend .v{font-size:14px;color:var(--muted);align-self:center}
+.tview{margin-top:8px;font-size:14px}
+.tview summary{color:var(--accent);font-size:14px}
+.tview table{margin-top:6px;font-variant-numeric:tabular-nums}
+.drill{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
+.drill .t{flex:1}
+.letter{border-color:var(--accent)}
+.letter-item{border-top:1px solid var(--line);padding:10px 0}
+.letter-item .d{font-size:13px;color:var(--muted)}
+.msg{margin:10px 0;max-width:88%}
+.msg .b{border-radius:14px;padding:9px 13px;display:inline-block}
+.msg.them .b{background:var(--bg);border-top-left-radius:4px}
+.msg.me{margin-left:auto;text-align:right}
+.msg.me .b{background:var(--soft);border-top-right-radius:4px;text-align:left}
+.msg .zh2{font-size:14px;color:var(--muted);margin-top:2px}
+.msg .fb{font-size:14px;margin-top:4px;text-align:left}
+.msg .fb ins{font-weight:600}
 .car-en{font-size:19px;color:var(--accent);min-height:1.6em;margin-bottom:14px}
 .car-ctl{display:flex;gap:12px;margin-bottom:6px}
 .car-ctl .btn{flex:1;font-size:28px;padding:14px 0}
@@ -155,6 +189,7 @@ b.w{margin-right:8px}
   <h1>英文家教</h1>
   <nav>
     <button data-tab="practice" class="on">練習</button>
+    <button data-tab="progress">進度</button>
     <button data-tab="lessons">課文</button>
     <button data-tab="settings">設定</button>
   </nav>
@@ -180,6 +215,12 @@ b.w{margin-right:8px}
     <div class="welcome hidden" id="welcome"></div>
     <button class="btn primary big" id="todayBtn"></button>
     <div class="levels" id="levels"></div>
+  </div>
+
+  <div class="card hidden letter" id="letterCard">
+    <h2>📬 這週的教練信</h2>
+    <div id="letterText"></div>
+    <div class="actions"><span class="grow"></span><button class="btn small" id="letterDone">看完了</button></div>
   </div>
 
   <div class="card hidden" id="calCard">
@@ -215,6 +256,7 @@ b.w{margin-right:8px}
       <div class="actions">
         <button class="btn primary" id="startBtn">開始</button>
         <button class="btn" id="carBtn">🚗 開車聽</button>
+        <button class="btn" id="chatBtn">💬 情境對話</button>
       </div>
     </div>
   </div>
@@ -248,6 +290,7 @@ b.w{margin-right:8px}
   <div class="card hidden" id="quiz">
     <div class="progress"><span id="progText"></span><a href="#" id="quitBtn" class="muted">結束</a></div>
     <div class="bar"><i id="progBar"></i></div>
+    <div class="sec hidden" id="qIntro"></div>
     <div class="mode-tag" id="qMode"></div>
     <div class="muted" id="qPrompt">請用英文說出：</div>
     <div class="zh" id="qZh"></div>
@@ -269,6 +312,49 @@ b.w{margin-right:8px}
   </div>
 
   <div class="card hidden" id="summary"></div>
+
+  <div class="card hidden" id="chat">
+    <div class="progress"><span id="chatProg"></span><a href="#" id="chatQuit" class="muted">結束</a></div>
+    <div class="muted" id="chatScene"></div>
+    <div id="chatLog"></div>
+    <div id="chatInput">
+      <textarea id="chatText" rows="2" placeholder="用英文回答，或按 🎤 用說的" autocomplete="off" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn" id="chatMic">🎤 錄音</button>
+        <button class="btn" id="chatZh">看中文</button>
+        <span class="grow"></span>
+        <button class="btn primary" id="chatSend">送出</button>
+      </div>
+    </div>
+    <div id="chatEnd" class="hidden"></div>
+  </div>
+</section>
+
+<!-- 進度 -->
+<section id="tab-progress" class="hidden">
+  <div class="card">
+    <h2>這週和上週</h2>
+    <div class="tiles" id="weekTiles"></div>
+  </div>
+  <div class="card">
+    <h2>發音分數</h2>
+    <p class="muted" id="pronNote"></p>
+    <div id="pronChart"></div>
+  </div>
+  <div class="card">
+    <h2>錯誤類型的變化</h2>
+    <p class="muted">每 10 句平均錯幾次，最近 6 週；藍色是這週。用「每 10 句」算，練得少的那週也能公平比較。</p>
+    <div id="errTrend"></div>
+  </div>
+  <div class="card">
+    <h2>🎯 弱點專練</h2>
+    <p class="muted">Gemini 會針對你最近常錯的地方，出 5 句課文裡沒有的新句子。能說對沒看過的句子，才代表真的會用這個規則。</p>
+    <div id="drillList"></div>
+  </div>
+  <div class="card">
+    <h2>📬 教練信</h2>
+    <div id="letterList"></div>
+  </div>
 </section>
 
 <!-- 課文 -->
@@ -360,6 +446,8 @@ b.w{margin-right:8px}
 <script src="js/audio.js"></script>
 <script src="js/practice.js"></script>
 <script src="js/modes.js"></script>
+<script src="js/progress.js"></script>
+<script src="js/chat.js"></script>
 <script src="js/car.js"></script>
 <script src="js/lessons.js"></script>
 <script src="js/settings.js"></script>
