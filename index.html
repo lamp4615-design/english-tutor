@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>英文家教</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="英文家教">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181d" media="(prefers-color-scheme: dark)">
 <style>
 :root{
   --bg:#f6f5f2; --card:#ffffff; --text:#1f2328; --muted:#6b7280; --line:#e3e1dc;
@@ -204,6 +212,12 @@ b.w{margin-right:8px}
 
 <!-- 設定 -->
 <section id="tab-settings" class="hidden">
+  <div class="card" id="installCard">
+    <h2>📲 安裝到手機桌面</h2>
+    <p id="installHow" class="muted"></p>
+    <div class="actions hidden" id="installActions"><button class="btn primary" id="installBtn">安裝</button></div>
+    <p class="muted">裝好後從桌面圖示打開，就像一般 App，不用再開瀏覽器找網址。iPhone 第一次從桌面打開時，要再輸入一次通行碼。</p>
+  </div>
   <div class="card">
     <h2>連線設定</h2>
     <label>後端網址（Apps Script 網頁應用程式網址）</label>
@@ -1206,6 +1220,29 @@ async function connect() {
   showTab(hasKey ? 'practice' : 'settings');
   return true;
 }
+
+// ---------- 安裝到手機桌面 ----------
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let installPrompt = null;
+function renderInstall() {
+  $('#installCard').classList.toggle('hidden', standalone());
+  $('#installActions').classList.toggle('hidden', !installPrompt);
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  $('#installHow').textContent = installPrompt ? '按下面的「安裝」，桌面就會出現英文家教的圖示。'
+    : ios ? '用 Safari 打開這個網頁，按下方的「分享」按鈕（方框加向上箭頭），往下找「加入主畫面」，再按「加入」。'
+    : '打開瀏覽器右上角的選單（⋮），選「安裝應用程式」或「加到主畫面」。';
+}
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; renderInstall(); });
+addEventListener('appinstalled', () => { installPrompt = null; renderInstall(); toast('已安裝，之後可以從桌面圖示打開'); });
+$('#installBtn').onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  renderInstall();
+};
+renderInstall();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 if (getConn().token) connect();
 else { $('#loading').classList.add('hidden'); showTab('settings'); }

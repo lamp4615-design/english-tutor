@@ -363,5 +363,25 @@ function geminiReply(obj) {
   ok(w.bytesToBase64(big) === Buffer.from(big).toString('base64'), '大檔案轉 base64 正確');
 }
 
+// ---------- 安裝到手機桌面 ----------
+{
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  let m = {};
+  try { m = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8')); ok(true); }
+  catch (e) { ok(false, 'manifest 格式錯誤：' + e.message); }
+  ok(m.name && m.short_name && m.display === 'standalone' && m.start_url && m.scope === './', 'manifest 有名稱、獨立視窗、起始網址');
+  ok(!/^\//.test(m.start_url) && m.icons.every(i => !/^\//.test(i.src)), '路徑都是相對的（網站在 /english-tutor/ 底下）');
+  const png = f => { const b = fs.readFileSync(path.join(root, f)); return b.readUInt32BE(0) === 0x89504e47 ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null; };
+  m.icons.forEach(i => { const s = png(i.src); ok(s && i.sizes === `${s[0]}x${s[1]}`, '圖示尺寸正確：' + i.src); });
+  ok(m.icons.some(i => i.sizes === '192x192') && m.icons.some(i => i.sizes === '512x512') && m.icons.some(i => i.purpose === 'maskable'), '有 192、512 和遮罩圖示');
+  ok(String(png('icons/apple-touch-icon.png')) === '180,180', 'iPhone 圖示 180×180');
+  ok(/rel="manifest" href="manifest\.webmanifest"/.test(html) && /rel="apple-touch-icon"/.test(html), '網頁有連到 manifest 和 iPhone 圖示');
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  try { new vm.Script(sw); ok(true); } catch (e) { ok(false, 'sw.js 語法錯誤：' + e.message); }
+  const shell = JSON.parse(sw.match(/const SHELL = (\[.*\]);/)[1].replace(/'/g, '"'));
+  ok(shell.filter(f => f !== './').every(f => fs.existsSync(path.join(root, f))), 'sw.js 要存的檔案都存在');
+  ok(/req\.method !== 'GET'/.test(sw) && /origin !== location\.origin/.test(sw), 'sw.js 不碰後端呼叫');
+}
+
 console.log(`\n通過 ${pass}／失敗 ${fail}`);
 process.exit(fail ? 1 : 0);
