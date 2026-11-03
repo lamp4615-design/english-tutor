@@ -166,7 +166,7 @@ function getDriveText(fileId) {
 function gemini(system, user, model, audio) {
   const key = props_().getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('請先到「設定」輸入 Gemini API 金鑰');
-  model = String(model || '').trim() || 'gemini-3.5-flash';
+  model = String(model || '').trim() || FALLBACK_MODEL;
   const parts = [{ text: user }];
   if (audio && audio.data) parts.push({ inlineData: { mimeType: audio.mime || 'audio/wav', data: audio.data } });
   // 模型忙線（503）時馬上改用備用模型；本身就是備用模型時等一下再試一次
@@ -180,13 +180,14 @@ function gemini(system, user, model, audio) {
       payload: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: parts }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+        generationConfig: genConfig_(tries[i])
       }),
       muteHttpExceptions: true
     });
     code = r.getResponseCode();
     try { data = JSON.parse(r.getContentText()); } catch (e) { data = {}; }
-    if (code !== 503) break;
+    // 忙線（503），或新模型不接受這個請求（400/404）時，改用備用模型
+    if (code !== 503 && !((code === 400 || code === 404) && tries[i + 1] && tries[i + 1] !== tries[i])) break;
     if (i < tries.length - 1 && tries[i + 1] === tries[i]) Utilities.sleep(1500);
   }
   if (code !== 200) {
@@ -200,6 +201,12 @@ function gemini(system, user, model, audio) {
   const text = out.filter(p => !p.thought).map(p => p.text || '').join('');
   if (!text) throw new Error('Gemini 沒有回應內容，請再試一次');
   return JSON.parse(text.replace(/^\s*```(json)?/, '').replace(/```\s*$/, ''));
+}
+
+// 3.8 版不再接受 temperature，改用思考程度（low 回得比較快）；舊模型維持原本設定
+function genConfig_(model) {
+  if (/^gemini-3\.8/.test(model)) return { responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'low' } };
+  return { responseMimeType: 'application/json', temperature: 0.2 };
 }
 
 // ---------- 語音 ----------

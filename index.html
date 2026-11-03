@@ -234,7 +234,7 @@ b.w{margin-right:8px}
     <p class="muted">到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費申請。金鑰存在你的 Apps Script 專案裡，不會出現在網頁上；已經設定過的話，這格留空就會保留原本的金鑰。</p>
     <label>錄音分析</label>
     <select id="audioMode">
-      <option value="detail">仔細（約 10 秒，聽得出語調、重音等細節）</option>
+      <option value="detail">仔細（Gemini 3.8 Flash，聽得出語調、重音等細節）</option>
       <option value="fast">快速（約 3 秒）</option>
     </select>
     <p class="muted">選「仔細」時，如果 Gemini 忙線，會自動改用快速模式，不會一直等。</p>
@@ -360,8 +360,8 @@ function gemini(system, user, audio, model) {
   if (!hasKey) return Promise.reject(new Error('請先到「設定」輸入 Gemini API 金鑰'));
   return run('gemini', system, user, model || db.settings.model || DEFAULT_MODEL, audio || null);
 }
-// 錄音分析：仔細＝完整版（約 10 秒，聽得出語調平淡等細節）；快速＝lite 版（約 3 秒）。完整版忙線時後端會自動改用 lite
-const AUDIO_MODELS = { detail: 'gemini-3.5-flash', fast: DEFAULT_MODEL };
+// 錄音分析：仔細＝3.8 Flash（聽得出語調平淡等細節）；快速＝lite 版（約 3 秒）。3.8 忙線時後端會自動改用 lite
+const AUDIO_MODELS = { detail: 'gemini-3.8-flash', fast: DEFAULT_MODEL };
 function audioModel() { return AUDIO_MODELS[db.settings.audioMode] || AUDIO_MODELS.detail; }
 
 const EXTRACT_PROMPT = `你會收到一篇雙語（英文＋中文）課程內容。請抽出適合做「看中文、說英文」練習的英文句子，並配上對應的中文。
@@ -704,7 +704,7 @@ async function gradeRecording(blob) {
   const it = current();
   if (session.recUrl) URL.revokeObjectURL(session.recUrl);
   session.recUrl = URL.createObjectURL(blob);
-  setBusy(true, db.settings.audioMode === 'fast' ? 'Gemini 聽你說…' : 'Gemini 仔細聽你說…（約 10 秒）');
+  setBusy(true, db.settings.audioMode === 'fast' ? 'Gemini 聽你說…' : 'Gemini 仔細聽你說…');
   try {
     const data = await blobToWavBase64(blob);
     const r = await gemini(AUDIO_PROMPT, `中文：${it.zh}\n課文原句：${it.en}\n學生的錄音如下。`, { mime: 'audio/wav', data }, audioModel());
