@@ -311,6 +311,13 @@ function geminiReply(obj) {
   t.queue([{ code: 200, body: { candidates: [{ content: { parts: [{ text: 'no audio' }] } }] } }]);
   throws(() => t.env.tts('Hey.', false), /語音產生失敗/, '沒有語音內容時給中文訊息');
 
+  t.fetches.length = 0;
+  t.queue([audioReply('audio/wav', 'Wkg=')]);
+  ok(t.env.tts('我昨天去圖書館。', false, 'zh').data === 'Wkg=' && /Mandarin: 我昨天去圖書館。$/.test(JSON.parse(t.fetches[0].opt.payload).contents[0].parts[0].text), '中文用中文的唸法');
+  t.fetches.length = 0;
+  t.env.tts('I went to the library yesterday.', false);
+  ok(t.fetches.length === 0, '加了中文之後，原本英文的語音快取還是有效');
+
   t.folders[folderId].trashed = true;
   t.queue([audioReply('audio/wav', 'TkVX')]);
   t.env.tts('New.', false);

@@ -205,10 +205,12 @@ function gemini(system, user, model, audio) {
 // ---------- 語音 ----------
 // 用 Gemini 產生真人語調的發音。產生過的存在雲端硬碟「英文家教語音」資料夾，同一句下次直接拿，不用再等、也不耗額度
 // 回傳 { mime, data }：mime 可能是 audio/wav 或 audio/L16;rate=24000（網頁會自己轉成 WAV）
-function tts(text, slow) {
+// lang：'zh' 唸中文（開車聽用），其他都唸英文
+function tts(text, slow, lang) {
   text = String(text || '').trim();
   if (!text) throw new Error('沒有要唸的句子');
-  const name = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, TTS_VOICE + '|' + (slow ? 'slow' : 'normal') + '|' + text)
+  const zh = lang === 'zh';
+  const name = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, TTS_VOICE + '|' + (zh ? 'zh|' : '') + (slow ? 'slow' : 'normal') + '|' + text)
     .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('') + '.json';
   const folder = ttsFolder_();
   const hit = folder.getFilesByName(name);
@@ -216,7 +218,9 @@ function tts(text, slow) {
 
   const key = props_().getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('請先到「設定」輸入 Gemini API 金鑰');
-  const prompt = slow
+  const prompt = zh
+    ? 'Read this Traditional Chinese sentence naturally in Taiwanese Mandarin: ' + text
+    : slow
     ? 'Read this slowly and clearly for an English learner, keeping natural American English intonation: ' + text
     : 'Say this naturally, like a friendly native American English speaker in everyday conversation: ' + text;
   let code, data;
