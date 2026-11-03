@@ -244,7 +244,9 @@ function geminiReply(obj) {
   t.queue([{ code: 503, body: {} }, geminiReply({ ok: true })]);
   t.env.gemini('s', 'u', 'gemini-3.8-flash');
   const c38 = JSON.parse(t.fetches[0].opt.payload).generationConfig, cLite = JSON.parse(t.fetches[1].opt.payload).generationConfig;
+  const liteUrl = t.fetches[1].url;
   ok(c38.temperature === undefined && c38.thinkingConfig.thinkingLevel === 'low' && c38.responseMimeType === 'application/json', '3.8 版不送 temperature，思考程度 low');
+  ok(/gemini-3\.5-flash-lite:/.test(liteUrl) && cLite.temperature === 0.2 && !cLite.thinkingConfig, '3.8 忙線改用 lite 時，用 lite 的設定');
   t.fetches.length = 0;
   t.queue([{ code: 400, body: { error: { message: 'Invalid JSON payload' } } }, geminiReply({ ok: 38 })]);
   ok(t.env.gemini('s', 'u', 'gemini-3.8-flash').ok === 38 && t.fetches.length === 2 && /gemini-3\.5-flash-lite:/.test(t.fetches[1].url), '3.8 不接受請求（400）時改用 lite，不讓使用者看到錯誤');
@@ -252,7 +254,6 @@ function geminiReply(obj) {
   t.queue([{ code: 400, body: { error: { message: 'API key not valid' } } }]);
   throws(() => t.env.gemini('s', 'u', 'gemini-3.5-flash-lite'), /金鑰或模型名稱有問題/, 'lite 本身 400 時直接回報，不重試');
   ok(t.fetches.length === 1, 'lite 400 只呼叫一次');
-  ok(/gemini-3\.5-flash-lite:/.test(t.fetches[1].url) && cLite.temperature === 0.2 && !cLite.thinkingConfig, '3.8 忙線改用 lite 時，用 lite 的設定');
 
   t.fetches.length = 0;
   t.queue([geminiReply({ a: 1 })]);

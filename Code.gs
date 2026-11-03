@@ -186,8 +186,8 @@ function gemini(system, user, model, audio) {
     });
     code = r.getResponseCode();
     try { data = JSON.parse(r.getContentText()); } catch (e) { data = {}; }
-    // 忙線（503），或新模型不接受這個請求（400/404）時，改用備用模型
-    if (code !== 503 && !((code === 400 || code === 404) && tries[i + 1] && tries[i + 1] !== tries[i])) break;
+    // 忙線（503），或 3.8 版不接受這個請求（400/404）時，改用備用模型；其他模型名稱打錯照常回報
+    if (code !== 503 && !((code === 400 || code === 404) && /^gemini-3\.8/.test(tries[i]))) break;
     if (i < tries.length - 1 && tries[i + 1] === tries[i]) Utilities.sleep(1500);
   }
   if (code !== 200) {
