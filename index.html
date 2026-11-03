@@ -70,7 +70,8 @@ td,th{border-top:1px solid var(--line);padding:6px 4px;vertical-align:top;text-a
 td input{padding:5px 8px;font-size:14px}
 details summary{cursor:pointer;list-style:none}
 details summary::-webkit-details-marker{display:none}
-.lesson-head{display:flex;align-items:center;gap:8px}
+.lesson-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lesson-head .lbar{flex-basis:100%}
 .lesson-head .t{flex:1;font-weight:600}
 .stat{display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 14px}
 .stat div{background:var(--bg);border-radius:10px;padding:8px 14px}
@@ -96,6 +97,37 @@ b.w{margin-right:8px}
 .speak.loading{opacity:.4}
 @media (max-width:420px){.subs{grid-template-columns:1fr}}
 #result audio{width:100%;margin:6px 0;height:36px}
+.today-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.ring{width:72px;height:72px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+.ring-bg{stroke:var(--line)}
+.ring-fg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s}
+.ring.done .ring-fg{stroke:var(--ok)}
+.today-text{flex:1;min-width:0}
+.today-n{font-size:20px;font-weight:700}
+.streak{text-align:center;font-size:13px;color:var(--muted);line-height:1.3}
+.streak b{display:block;font-size:24px;color:var(--mid)}
+.btn.big{width:100%;padding:13px;font-size:17px}
+.welcome{background:var(--mid-bg);color:var(--mid);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:15px}
+.levels{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;font-size:14px;color:var(--muted)}
+.levels span{background:var(--bg);border-radius:8px;padding:2px 10px}
+.lbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin:6px 0 0}
+.lbar i{display:block;height:100%}
+.lv1{background:#86efac}.lv2{background:#22c55e}.lv3{background:var(--mid)}
+.cal-head{display:flex;align-items:baseline;justify-content:space-between;gap:4px 8px;flex-wrap:wrap}
+.cal-head h2{margin-bottom:8px}
+.cal{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,auto);grid-auto-columns:minmax(0,1fr);gap:3px;max-width:420px}
+.cal i,.cal-legend i{display:block;width:100%;aspect-ratio:1;border-radius:3px;background:var(--line)}
+.cal i.future{visibility:hidden}
+.cal i.today{outline:2px solid var(--accent);outline-offset:-1px}
+.cal-legend{display:flex;align-items:center;gap:3px;justify-content:flex-end;margin-top:8px;font-size:12px}
+.cal-legend i{width:12px;min-width:0}
+.cal .c1,.cal-legend .c1{background:#bfdbfe}.cal .c2,.cal-legend .c2{background:#60a5fa}
+.cal .c3,.cal-legend .c3{background:#2563eb}.cal .c4,.cal-legend .c4{background:#1e3a8a}
+.cal .rest{background:var(--mid-bg)}
+.cheer{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:10px 14px;margin:0 0 14px}
+.cheer div{margin:2px 0}
+.good{color:var(--ok);margin:4px 0 8px}
 .car-en{font-size:19px;color:var(--accent);min-height:1.6em;margin-bottom:14px}
 .car-ctl{display:flex;gap:12px;margin-bottom:6px}
 .car-ctl .btn{flex:1;font-size:28px;padding:14px 0}
@@ -116,8 +148,32 @@ b.w{margin-right:8px}
 
 <!-- 練習 -->
 <section id="tab-practice">
+ <div id="home">
+  <div class="card hidden" id="today">
+    <div class="today-top">
+      <svg class="ring" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="40" r="34" class="ring-bg"/>
+        <circle cx="40" cy="40" r="34" class="ring-fg" id="ringFg" transform="rotate(-90 40 40)"/>
+      </svg>
+      <div class="today-text">
+        <div class="today-n" id="todayN"></div>
+        <div class="muted" id="todayPlan"></div>
+      </div>
+      <div class="streak" id="streak"></div>
+    </div>
+    <div class="welcome hidden" id="welcome"></div>
+    <button class="btn primary big" id="todayBtn"></button>
+    <div class="levels" id="levels"></div>
+  </div>
+
+  <div class="card hidden" id="calCard">
+    <div class="cal-head"><h2>練習日曆</h2><span class="muted" id="calNote"></span></div>
+    <div class="cal" id="cal"></div>
+    <div class="cal-legend muted">少 <i class="c0"></i><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i> 多</div>
+  </div>
+
   <div class="card" id="setup">
-    <h2>開始練習</h2>
+    <h2>自選練習</h2>
     <div id="noLesson" class="muted hidden">還沒有課文。請先到「課文」貼上一篇雙語內容。</div>
     <div id="setupForm">
       <div class="row">
@@ -138,6 +194,7 @@ b.w{margin-right:8px}
       </div>
     </div>
   </div>
+ </div>
 
   <div class="card hidden" id="car">
     <div class="progress"><span id="carProg"></span><a href="#" id="carQuit" class="muted">結束</a></div>
@@ -253,6 +310,16 @@ b.w{margin-right:8px}
     </div>
   </div>
   <div class="card">
+    <h2>每日目標</h2>
+    <select id="goal">
+      <option value="5">每天 5 句（約 4 分鐘）</option>
+      <option value="10">每天 10 句（約 7 分鐘）</option>
+      <option value="15">每天 15 句（約 10 分鐘）</option>
+      <option value="20">每天 20 句（約 14 分鐘）</option>
+    </select>
+    <p class="muted">目標小一點沒關係，天天做得到比較重要。練習一句以上、或開車聽滿 10 分鐘，就算當天有練。每週有 1 天補休：漏掉一天，連續天數不會歸零。</p>
+  </div>
+  <div class="card">
     <h2>複習規則</h2>
     <p class="muted">答對的句子會間隔越來越久再出現（1、2、4、7、15、30 天）；部分對的隔天再練；答錯或跳過的下次立刻再練。有按「提示」的題目，答對也算部分對。</p>
   </div>
@@ -274,7 +341,7 @@ const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxHlvAinyEKuBxo
 const CONN_KEY = 'english-tutor.conn';
 const MAX_REC_SEC = 30;
 
-let db = { lessons: [], settings: {} };
+let db = { lessons: [], settings: {}, stats: { days: {} } };
 let rev = 0, hasKey = false, loaded = false;
 let session = null;   // { queue, i, results, hints, answered, recUrl }
 let rec = null;       // { recorder, stream, timer }
@@ -313,7 +380,8 @@ async function run(fn, ...args) {
 
 function applyData(d) {
   const parsed = JSON.parse(d.json || '{}');
-  db = { lessons: Array.isArray(parsed.lessons) ? parsed.lessons : [], settings: parsed.settings || {} };
+  db = { lessons: Array.isArray(parsed.lessons) ? parsed.lessons : [], settings: parsed.settings || {}, stats: parsed.stats || {} };
+  if (!db.stats.days) db.stats.days = {};
   if (!db.settings.model || OLD_DEFAULT_MODELS.includes(db.settings.model)) db.settings.model = DEFAULT_MODEL;
   rev = d.rev; hasKey = d.hasKey;
 }
@@ -379,9 +447,10 @@ const GRADE_RULES = `- 標準是「意思正確，而且英文文法正確、自
 - errors：逐一列出錯誤。type 從這些選一個：文法、時態、用字、拼字、冠詞、介系詞、單複數、語序、漏字、意思錯誤、其他。wrong＝學生說錯的片段，fix＝修正後的片段，explain＝用繁體中文說明為什麼錯，rule＝一句話的文法規則（台灣學生好記的說法），example＝另一個套用同規則的英文例句。
 - corrected：保留學生原本的說法，只改掉錯的地方後的完整句子。全對就和學生答案相同。
 - natural：1～2 個母語人士在日常對話中更常用的說法（跟課文原句、corrected 都不同的才列，沒有就給空陣列）。
-- note：一兩句繁體中文總評。`;
+- good：一句繁體中文，具體說出學生這次做對的地方（例如時態用對、單字選得好、句型完整），讓他知道哪些已經會了；幾乎沒答就留空。
+- note：一兩句繁體中文總評，語氣像鼓勵人的家教。`;
 
-const GRADE_JSON = `"verdict":"correct|partial|wrong","errors":[{"type":"","wrong":"","fix":"","explain":"","rule":"","example":""}],"corrected":"","natural":[""],"note":""`;
+const GRADE_JSON = `"verdict":"correct|partial|wrong","good":"","errors":[{"type":"","wrong":"","fix":"","explain":"","rule":"","example":""}],"corrected":"","natural":[""],"note":""`;
 
 const GRADE_PROMPT = `你是英文家教，學生是台灣的成人學習者。學生看中文，用英文寫出意思。請批改學生的英文，給具體、可以照著改的回饋。
 規則：
@@ -421,6 +490,176 @@ function showTab(name) {
   if (name === 'settings') renderSettings();
 }
 
+// ---------- 每天的紀錄、連續天數、熟練度 ----------
+// stats.days['2026-11-03'] = { n 練了幾句, ok 完全正確, err {錯誤類型: 次數}, car 開車聽秒數 }
+// 連續天數不另外存，每次從 days 算，手機和電腦一定一致
+const CAR_ACTIVE_SEC = 600;
+const LEVELS = [['🌱', '新句子'], ['🌿', '學習中'], ['🌳', '熟悉'], ['⭐', '精熟']];
+function dayKey(t) {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function keyTime(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).getTime();
+}
+function addDays(key, n) {
+  const [y, m, d] = key.split('-').map(Number);
+  return dayKey(new Date(y, m - 1, d + n));
+}
+// 每週從星期一算起，補休以週為單位
+function weekKey(key) {
+  return addDays(key, -((new Date(keyTime(key)).getDay() + 6) % 7));
+}
+function dayStat(key, create) {
+  const days = db.stats.days;
+  if (!days[key] && create) days[key] = { n: 0, ok: 0, err: {}, car: 0 };
+  return days[key] || { n: 0, ok: 0, err: {}, car: 0 };
+}
+const isActive = s => s.n > 0 || s.car >= CAR_ACTIVE_SEC;
+
+// 從最早有紀錄的那天往後走：有練就 +1；沒練的那天，那週補休還在就用掉，否則歸零。今天還沒練不算斷
+function streakInfo(today = dayKey(Date.now())) {
+  const keys = Object.keys(db.stats.days).filter(k => isActive(db.stats.days[k])).sort();
+  const res = { current: 0, best: 0, rest: {}, restLeft: 1 };
+  if (!keys.length) return res;
+  let run = 0;
+  for (let k = keys[0]; k < today; k = addDays(k, 1)) {
+    if (isActive(dayStat(k))) run++;
+    else if (run && !res.rest[weekKey(k)]) res.rest[weekKey(k)] = k;
+    else run = 0;
+    res.best = Math.max(res.best, run);
+  }
+  if (isActive(dayStat(today))) run++;
+  res.current = run;
+  res.best = Math.max(res.best, run);
+  res.restLeft = res.rest[weekKey(today)] ? 0 : 1;
+  return res;
+}
+function level(it) {
+  if (!it.attempts) return 0;
+  return it.box >= 5 ? 3 : it.box >= 3 ? 2 : 1;
+}
+function levelCounts(items) {
+  const c = [0, 0, 0, 0];
+  items.forEach(it => c[level(it)]++);
+  return c;
+}
+function levelBar(items) {
+  const c = levelCounts(items), n = items.length || 1;
+  return `<div class="lbar">${[1, 2, 3].map(l => `<i class="lv${l}" style="width:${c[l] / n * 100}%"></i>`).join('')}</div>`;
+}
+function logAnswer(r) {
+  const s = dayStat(dayKey(Date.now()), true);
+  s.n++;
+  if (r.verdict === 'correct') s.ok++;
+  list(r.errors).forEach(e => { const t = e.type || '其他'; s.err[t] = (s.err[t] || 0) + 1; });
+}
+function goal() { return +db.stats.goal || 10; }
+
+// ---------- 今日任務 ----------
+// 待複習太多（超過目標兩倍）時，今天只排目標的量，其他的平均分到之後幾天，不讓人一打開就有壓力
+function todayPlan() {
+  const items = allItems('all'), now = Date.now();
+  const due = items.filter(it => it.attempts > 0 && it.due <= now).sort((a, b) => a.due - b.due);
+  const fresh = items.filter(it => it.attempts === 0);
+  const done = dayStat(dayKey(now)).n;
+  const left = Math.max(goal() - done, 0);
+  const size = left || 5;
+  const reviews = due.slice(0, size);
+  const queue = reviews.concat(fresh.slice(0, size - reviews.length));
+  return { due, fresh, done, left, queue, overflow: due.length > goal() * 2 ? due.slice(goal()) : [] };
+}
+function lastActiveBefore(today) {
+  const keys = Object.keys(db.stats.days).filter(k => k < today && isActive(db.stats.days[k])).sort();
+  return keys[keys.length - 1];
+}
+function renderToday() {
+  const has = db.lessons.some(l => l.items.length);
+  $('#today').classList.toggle('hidden', !has);
+  $('#calCard').classList.toggle('hidden', !has);
+  if (!has) return;
+  const p = todayPlan(), g = goal(), st = streakInfo();
+  const pct = Math.min(p.done / g, 1), C = 2 * Math.PI * 34;
+  $('#ringFg').setAttribute('stroke-dasharray', C.toFixed(1));
+  $('#ringFg').setAttribute('stroke-dashoffset', (C * (1 - pct)).toFixed(1));
+  $('#ringFg').closest('svg').classList.toggle('done', pct >= 1);
+  $('#todayN').textContent = p.left ? `今天 ${p.done} / ${g} 句` : '今天的目標完成了 🎉';
+  const nr = p.queue.filter(it => it.attempts > 0).length, nf = p.queue.length - nr;
+  $('#todayPlan').textContent = !p.queue.length ? '所有句子都練過了，可以到「課文」加新的'
+    : (p.left ? '接下來：' : '想多練的話：') + [nr && `複習 ${nr} 句`, nf && `新句子 ${nf} 句`].filter(Boolean).join('＋') + `，約 ${Math.max(1, Math.round(p.queue.length * 0.7))} 分鐘`;
+  $('#streak').innerHTML = `<b>🔥 ${st.current}</b>連續天數${st.restLeft ? '' : '<br>本週補休已用'}`;
+  $('#todayBtn').textContent = p.left ? '開始今天的練習' : '再多練 5 句';
+  $('#todayBtn').disabled = !p.queue.length;
+  const today = dayKey(Date.now()), last = lastActiveBefore(today);
+  const away = last ? Math.round((keyTime(today) - keyTime(last)) / DAY) : 0;
+  const msgs = [];
+  if (away >= 3 && !p.done) msgs.push(`歡迎回來！隔了 ${away - 1} 天沒關係，今天練一點點就好。`);
+  if (p.overflow.length) msgs.push(`待複習有 ${p.due.length} 句，今天先練 ${g} 句，其他的會平均排到接下來幾天，不用一次補完。`);
+  $('#welcome').innerHTML = msgs.map(esc).join('<br>');
+  $('#welcome').classList.toggle('hidden', !msgs.length);
+  const c = levelCounts(allItems('all'));
+  $('#levels').innerHTML = LEVELS.map(([icon, name], i) => `<span>${icon} ${name} ${c[i]}</span>`).join('');
+  renderCalendar(st);
+}
+$('#todayBtn').onclick = () => {
+  const p = todayPlan();
+  if (!p.queue.length) return;
+  // 多出來的待複習分散到之後幾天，每天最多一個目標的量
+  if (p.overflow.length) {
+    const today = dayKey(Date.now());
+    p.overflow.forEach((it, i) => { it.due = keyTime(addDays(today, 1 + Math.floor(i / goal()))); });
+    save();
+  }
+  startSession(p.queue);
+};
+
+// 最近 12 週，一欄一週（星期一在最上面）
+function renderCalendar(st) {
+  const today = dayKey(Date.now()), start = addDays(weekKey(today), -7 * 11);
+  const rest = new Set(Object.values(st.rest));
+  let html = '', total = 0;
+  for (let k = start, i = 0; i < 84; k = addDays(k, 1), i++) {
+    const s = dayStat(k), n = s.n, on = isActive(s);
+    if (on) total++;
+    const c = n >= 20 ? 4 : n >= 10 ? 3 : n >= 5 ? 2 : on ? 1 : 0;
+    const cls = k > today ? 'future' : rest.has(k) ? 'rest' : 'c' + c;
+    const what = [n && `${n} 句`, s.car >= 60 && `開車聽 ${Math.round(s.car / 60)} 分`].filter(Boolean).join('、') || (rest.has(k) ? '補休' : '沒練');
+    html += `<i class="${cls}${k === today ? ' today' : ''}" title="${+k.slice(5, 7)}/${+k.slice(8)}：${what}"></i>`;
+  }
+  $('#cal').innerHTML = html;
+  $('#calNote').textContent = `近 12 週練了 ${total} 天・最長連續 ${st.best} 天`;
+}
+
+// 練習結束時，找出值得鼓勵的地方（只跟自己比）
+function snapshot() {
+  const days = db.stats.days, today = dayKey(Date.now());
+  return {
+    n: dayStat(today).n,
+    streak: streakInfo().current,
+    best: Math.max(0, ...Object.keys(days).filter(k => k !== today).map(k => days[k].n || 0))
+  };
+}
+function cheers(sess) {
+  const res = sess.results, out = [], b = sess.before;
+  const today = dayKey(Date.now()), st = streakInfo(), s = dayStat(today);
+  if (b.n < goal() && s.n >= goal()) out.push(`🎯 今天的目標 ${goal()} 句達成了！`);
+  if (st.current > b.streak) out.push(st.current > 1 ? `🔥 連續第 ${st.current} 天，繼續保持！` : '🔥 今天開始新的連續紀錄！');
+  if (st.current > b.streak && st.current === st.best && st.current > 2) out.push('🏆 這是你最長的連續紀錄！');
+  const ups = res.filter(x => level(x.item) > x.prevLevel);
+  const top = ups.filter(x => level(x.item) >= 2).length;
+  if (ups.length) out.push(`🌳 ${ups.length} 句升級了${top ? `，其中 ${top} 句已經熟悉或精熟` : ''}`);
+  if (b.best > 0 && s.n > b.best && b.n <= b.best) out.push(`📈 今天練了 ${s.n} 句，是你練最多的一天！`);
+  // 過去 7 天最常錯的類型，這次一次都沒錯
+  const past = {};
+  for (let i = 1; i <= 7; i++) Object.entries(dayStat(addDays(today, -i)).err || {}).forEach(([t, c]) => past[t] = (past[t] || 0) + c);
+  const worst = Object.entries(past).sort((x, y) => y[1] - x[1])[0];
+  if (worst && worst[1] >= 3 && res.length >= 3 && !res.some(x => list(x.r.errors).some(e => (e.type || '其他') === worst[0])))
+    out.push(`👏 這週最常錯的「${worst[0]}」（${worst[1]} 次），這次一次都沒錯！`);
+  if (!out.length) out.push(`💪 完成 ${res.length} 句，每一句都在累積。`);
+  return out;
+}
+
 // ---------- 練習設定 ----------
 function allItems(lessonId) {
   const ls = lessonId === 'all' ? db.lessons : db.lessons.filter(l => l.id === lessonId);
@@ -436,6 +675,7 @@ function pick(mode, lessonId) {
 }
 function renderSetup() {
   if (session) return;
+  renderToday();
   const has = db.lessons.length > 0;
   $('#noLesson').classList.toggle('hidden', has);
   $('#setupForm').classList.toggle('hidden', !has);
@@ -466,8 +706,8 @@ $('#startBtn').onclick = () => {
 
 // ---------- 作答 ----------
 function startSession(queue) {
-  session = { queue, i: 0, results: [] };
-  $('#setup').classList.add('hidden');
+  session = { queue, i: 0, results: [], before: snapshot() };
+  $('#home').classList.add('hidden');
   $('#summary').classList.add('hidden');
   $('#quiz').classList.remove('hidden');
   showQuestion();
@@ -530,8 +770,10 @@ function finish(ans, r) {
   const it = current();
   session.answered = true;
   const usedHint = session.hints > 0 && r.verdict === 'correct';
+  const prevLevel = level(it);
+  if (ans) logAnswer(r);   // 跳過的不算進今天的量
   schedule(it, usedHint ? 'partial' : r.verdict, ans);
-  session.results.push({ item: it, answer: ans, r });
+  session.results.push({ item: it, answer: ans, r, prevLevel });
   renderResult(it, ans, r, usedHint);
   $('#answer').disabled = true;
   $('#askActions').classList.add('hidden');
@@ -575,6 +817,7 @@ function renderResult(it, ans, r, usedHint) {
   $('#result').innerHTML = `
     <span class="verdict v-${r.verdict}">${VERDICT[r.verdict]}</span>
     ${usedHint ? '<span class="muted">（有用提示，下次會提早複習）</span>' : ''}
+    ${r.good ? `<div class="good">👍 ${esc(r.good)}</div>` : ''}
     ${ans ? `<div class="line"><b>${r.audio ? 'Gemini 聽到' : '你的回答'}</b>${esc(ans)}</div>` : ''}
     ${r.audio && session.recUrl ? `<div class="line"><b>你的錄音</b></div><audio controls src="${session.recUrl}"></audio>` : ''}
     ${errs}
@@ -629,6 +872,7 @@ function showSummary() {
   const pronAvg = spoken.length ? (spoken.reduce((s, x) => s + clampScore(x.r.pronunciation.score), 0) / spoken.length).toFixed(1) : '';
   $('#summary').innerHTML = `
     <h2>練習結果</h2>
+    <div class="cheer">${cheers(session).map(c => `<div>${esc(c)}</div>`).join('')}</div>
     <div class="stat">
       <div><span class="muted">答對率</span><strong>${n ? Math.round(ok / n * 100) : 0}%</strong></div>
       <div><span class="muted">完全正確</span><strong>${ok} / ${n}</strong></div>
@@ -654,7 +898,7 @@ function endSession() {
   session = null;
   $('#quiz').classList.add('hidden');
   $('#summary').classList.add('hidden');
-  $('#setup').classList.remove('hidden');
+  $('#home').classList.remove('hidden');
   renderSetup();
 }
 
@@ -950,7 +1194,15 @@ function carResume() {
     voicePlayer.play().catch(() => { car.playing = false; carShow(); });
   } else carPlay();
 }
-voicePlayer.addEventListener('ended', () => { if (car && car.playing && car.url && voicePlayer.src === car.url) carStep(1); });
+voicePlayer.addEventListener('ended', () => {
+  if (!(car && car.playing && car.url && voicePlayer.src === car.url)) return;
+  // 開車聽也算練習：累計秒數，滿 10 分鐘當天就算有練
+  const s = dayStat(dayKey(Date.now()), true), before = s.car;
+  s.car += Math.round(voicePlayer.duration) || 0;
+  if (before < CAR_ACTIVE_SEC && s.car >= CAR_ACTIVE_SEC && !s.n) toast('開車聽滿 10 分鐘，今天算有練 🔥');
+  save();
+  carStep(1);
+});
 
 $('#carBtn').onclick = () => {
   let q = pick($('#selMode').value, $('#selLesson').value);
@@ -963,7 +1215,7 @@ $('#carBtn').onclick = () => {
   if (c.twice != null) $('#carTwice').value = c.twice ? '1' : '0';
   if (c.loop != null) $('#carLoop').value = c.loop ? '1' : '0';
   car = { queue: q, i: 0, playing: false, url: null, clips: new Map() };
-  $('#setup').classList.add('hidden');
+  $('#home').classList.add('hidden');
   $('#summary').classList.add('hidden');
   $('#car').classList.remove('hidden');
   carPlay();
@@ -984,7 +1236,7 @@ $('#carQuit').onclick = e => {
   car = null;
   if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   $('#car').classList.add('hidden');
-  $('#setup').classList.remove('hidden');
+  $('#home').classList.remove('hidden');
   renderSetup();
 };
 if ('mediaSession' in navigator) {
@@ -1097,7 +1349,7 @@ function renderLessons() {
     const wrong = l.items.filter(it => it.attempts > 0 && it.last !== 'correct').length;
     return `<details class="card" data-lesson="${l.id}">
       <summary class="lesson-head"><span class="t">${esc(l.title)}</span>
-        <span class="muted">${l.items.length} 句・練過 ${done}・錯題 ${wrong}</span></summary>
+        <span class="muted">⭐ ${levelCounts(l.items)[3]}／${l.items.length} 句・練過 ${done}・錯題 ${wrong}</span>${levelBar(l.items)}</summary>
       <div class="overflow" style="margin-top:12px"><table>
         <tr><th>中文</th><th>英文</th><th style="width:70px">紀錄</th><th style="width:40px"></th></tr>
         ${l.items.map(it => `<tr data-item="${it.id}">
@@ -1153,7 +1405,9 @@ function renderSettings() {
   $('#apiKey').placeholder = hasKey ? '已設定（要更換才需要重新輸入）' : '尚未設定';
   $('#model').value = db.settings.model || DEFAULT_MODEL;
   $('#audioMode').value = AUDIO_MODELS[db.settings.audioMode] ? db.settings.audioMode : 'detail';
+  $('#goal').value = String(goal());
 }
+$('#goal').onchange = () => { db.stats.goal = +$('#goal').value; save(); toast('每日目標已更新'); };
 async function saveSettings() {
   const key = $('#apiKey').value.trim();
   if (key) { hasKey = await run('setApiKey', key); $('#apiKey').value = ''; }
@@ -1188,7 +1442,9 @@ $('#importFile').onchange = async e => {
     const d = JSON.parse(await file.text());
     if (!Array.isArray(d.lessons)) throw new Error('檔案格式不對');
     if (!confirm(`匯入 ${d.lessons.length} 篇課文，會取代目前的課文與紀錄。確定？`)) return;
-    db.lessons = d.lessons; save(); toast('匯入完成');
+    db.lessons = d.lessons;
+    if (d.stats && d.stats.days) db.stats = d.stats;
+    save(); toast('匯入完成');
   } catch (err) { toast('匯入失敗：' + err.message); }
 };
 
