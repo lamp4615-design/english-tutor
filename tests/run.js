@@ -343,14 +343,18 @@ function geminiReply(obj) {
 // ---------- 網頁 ----------
 {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  const js = html.slice(html.indexOf('<script>') + 8, html.lastIndexOf('</script>'));
-  try { new vm.Script(js); ok(true); } catch (e) { ok(false, 'index.html 的程式語法錯誤：' + e.message); }
+  // 網頁程式拆在 js/ 底下，依 index.html 的順序接起來檢查
+  const srcs = [...html.matchAll(/<script src="(js\/[\w-]+\.js)"><\/script>/g)].map(m => m[1]);
+  ok(srcs.length >= 8 && srcs[srcs.length - 1] === 'js/settings.js', '程式檔都有載入，啟動的 settings.js 最後載入');
+  const js = srcs.map(f => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
+  srcs.forEach(f => { try { new vm.Script(fs.readFileSync(path.join(root, f), 'utf8')); ok(true); } catch (e) { ok(false, f + ' 語法錯誤：' + e.message); } });
+  try { new vm.Script(js); ok(true); } catch (e) { ok(false, '程式接起來後有重複宣告或語法錯誤：' + e.message); }
   ok(!/google\.script\.run/.test(js), '網頁不再用 google.script.run');
   ok(!/generativelanguage/.test(js), '網頁不直接連 Gemini（金鑰留在後端）');
   ok(!/drive\.google\.com\/drive\/folders\/[\w-]{10,}/.test(html), '網頁裡沒有寫死雲端硬碟資料夾（會公開在 GitHub）');
   ok(!/AQ\.|AIza/.test(html.replace('placeholder="AIza...', '')), '網頁裡沒有金鑰');
   const ids = [...js.matchAll(/\$\('#([\w-]+)'\)/g)].map(m => m[1]);
-  const missing = [...new Set(ids)].filter(id => !html.includes(`id="${id}"`));
+  const missing = [...new Set(ids)].filter(id => !(html + js).includes(`id="${id}"`));
   ok(!missing.length, '網頁用到的元素都存在：' + missing.join(', '));
   const calls = [...js.matchAll(/run\('(\w+)'/g)].map(m => m[1]);
   const t = makeEnv();
@@ -396,6 +400,7 @@ function geminiReply(obj) {
   try { new vm.Script(sw); ok(true); } catch (e) { ok(false, 'sw.js 語法錯誤：' + e.message); }
   const shell = JSON.parse(sw.match(/const SHELL = (\[.*\]);/)[1].replace(/'/g, '"'));
   ok(shell.filter(f => f !== './').every(f => fs.existsSync(path.join(root, f))), 'sw.js 要存的檔案都存在');
+  ok([...html.matchAll(/<script src="(js\/[\w-]+\.js)"/g)].every(m => shell.includes('./' + m[1])), '每個程式檔都在 sw.js 的離線清單裡');
   ok(/req\.method !== 'GET'/.test(sw) && /origin !== location\.origin/.test(sw), 'sw.js 不碰後端呼叫');
 }
 
