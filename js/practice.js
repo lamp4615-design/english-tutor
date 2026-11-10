@@ -99,7 +99,11 @@ $('#hintBtn').onclick = () => {
 $('#skipBtn').onclick = () => finish('', { verdict: 'wrong', errors: [], corrected: '', note: '已跳過，這題會列入錯題。' });
 $('#submitBtn').onclick = () => { const m = MODES[session.mode]; if (m.submit) m.submit(current()); else submit(); };
 $('#answer').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); }
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    e.stopPropagation();   // 和原句一樣時 submit() 馬上就判完，不能讓同一個 Enter 再跳到「下一題」
+    submit();
+  }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && session && session.answered && document.activeElement !== $('#answer')) { e.preventDefault(); next(); }

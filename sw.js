@@ -1,7 +1,7 @@
 // 讓網頁可以安裝到手機桌面。
 // 網頁本身「先抓網路、抓不到才用存好的」：有更新時下次打開就是新版，沒網路時至少畫面打得開。
 // 呼叫後端（script.google.com）和 POST 一律不經過這裡。
-const CACHE = 'english-tutor-v4';
+const CACHE = 'english-tutor-v5';
 const SHELL = ['./', './index.html', './js/core.js', './js/stats.js', './js/audio.js', './js/practice.js', './js/modes.js', './js/progress.js', './js/chat.js', './js/car.js', './js/lessons.js', './js/settings.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png'];
 
 self.addEventListener('install', e => {

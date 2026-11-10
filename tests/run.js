@@ -47,7 +47,7 @@ function makeEnv() {
       getName: () => fo.name,
       isTrashed: () => !!fo.trashed,
       getFiles: () => iter(fo.files),
-      getFilesByName: n => iter(fo.files.filter(f => files[f].name === n)),
+      getFilesByName: n => iter(fo.files.filter(f => files[f].name === n && !files[f].trashed)),
       createFile: (name, content, mime) => {
         const fid = 'f' + nextId++;
         files[fid] = { name, content, mime, modified: Date.now() };
@@ -333,6 +333,12 @@ function geminiReply(obj) {
   t.fetches.length = 0;
   t.env.tts('I went to the library yesterday.', false);
   ok(t.fetches.length === 0, '加了中文之後，原本英文的語音快取還是有效');
+
+  t.fetches.length = 0;
+  t.queue([audioReply('audio/wav', 'UkVET08=')]);
+  ok(t.env.tts('I went to the library yesterday.', false, '', true).data === 'UkVET08=' && t.fetches.length === 1, '唸錯時可以強制重新產生，不用存好的');
+  t.fetches.length = 0;
+  ok(t.env.tts('I went to the library yesterday.', false).data === 'UkVET08=' && t.fetches.length === 0, '重新產生後，快取換成新的語音');
 
   t.folders[folderId].trashed = true;
   t.queue([audioReply('audio/wav', 'TkVX')]);

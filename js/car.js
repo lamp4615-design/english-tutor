@@ -23,9 +23,9 @@ function joinSamples(parts) {
   return out;
 }
 const silence = sec => new Float32Array(Math.round(sec * CAR_RATE));
-async function carClip(it, o) {
+async function carClip(it, o, fresh) {
   const [zh, en, slow] = await Promise.all([
-    voiceData(it.zh, false, 'zh'), voiceData(it.en, false), o.twice ? voiceData(it.en, true) : null
+    voiceData(it.zh, false, 'zh', fresh), voiceData(it.en, false, '', fresh), o.twice ? voiceData(it.en, true, '', fresh) : null
   ]);
   const parts = [voiceSamples(zh), silence(o.think), voiceSamples(en)];
   if (slow) parts.push(silence(1.2), voiceSamples(slow));
@@ -33,8 +33,46 @@ async function carClip(it, o) {
   return URL.createObjectURL(new Blob([encodeWav(joinSamples(parts), CAR_RATE)], { type: 'audio/wav' }));
 }
 function carLoad(i) {
-  if (!car.clips.has(i)) car.clips.set(i, carClip(car.queue[i], carOpts()).catch(e => { car.err = e.message; return null; }));
-  return car.clips.get(i);
+  const c = car;
+  if (!c.clips.has(i)) {
+    // 失敗的不留在清單裡，下次輪到時再試一次，不會一直卡在瀏覽器語音
+    const p = carClip(c.queue[i], carOpts()).catch(e => { c.err = e.message; if (c.clips.get(i) === p) c.clips.delete(i); return null; });
+    c.clips.set(i, p);
+  }
+  return c.clips.get(i);
+}
+// 只留目前這句和前後幾句的音檔，開很久也不會把手機記憶體吃光（要用到再從這台裝置的語音快取很快重做）
+function carTrim() {
+  const n = car.queue.length, keep = new Set([-1, 0, 1, 2].map(d => (car.i + d + n) % n));
+  car.clips.forEach((p, k) => {
+    if (keep.has(k)) return;
+    car.clips.delete(k);
+    p.then(u => { if (u && !(car && u === car.url)) URL.revokeObjectURL(u); });
+  });
+}
+// 這句唸得跟畫面不一樣：丟掉存好的語音（雲端和這台裝置），用 Gemini 重新唸一次
+async function carRedo() {
+  const c = car;
+  if (!c) return;
+  const i = c.i, btn = $('#carRedo');
+  carPause();
+  btn.disabled = true;
+  $('#carStatus').textContent = '重新產生這句的語音中…';
+  const old = c.clips.get(i);
+  c.clips.delete(i);
+  if (old) old.then(u => { if (u && u !== c.url) URL.revokeObjectURL(u); });
+  try {
+    const url = await carClip(c.queue[i], carOpts(), true);
+    if (car !== c) { URL.revokeObjectURL(url); return; }
+    c.clips.set(i, Promise.resolve(url));
+    toast('已重新產生，現在播放新的語音');
+    if (c.i === i) carPlay();
+  } catch (e) {
+    toast(e.message);
+    $('#carStatus').textContent = '';
+  } finally {
+    btn.disabled = false;
+  }
 }
 function carShow() {
   const it = car.queue[car.i], n = car.queue.length;
@@ -56,6 +94,7 @@ async function carPlay() {
   const url = await carLoad(i);
   if (car !== c || c.i !== i || !c.playing) return;
   $('#carStatus').textContent = '';
+  carTrim();
   // 先準備後面兩句，播完就能直接接上
   [1, 2].forEach(k => { const j = i + k; if (j < c.queue.length) carLoad(j); else if (carOpts().loop) carLoad(j % c.queue.length); });
   if (url) {
@@ -141,6 +180,7 @@ $('#carBtn').onclick = () => {
 $('#carPlay').onclick = () => { if (car.playing) carPause(); else carResume(); };
 $('#carPrev').onclick = () => { unlockVoice(); carStep(-1); };
 $('#carNext').onclick = () => { unlockVoice(); carStep(1); };
+$('#carRedo').onclick = () => { unlockVoice(); carRedo(); };
 ['#carThink', '#carTwice', '#carLoop'].forEach(s => $(s).onchange = () => {
   const o = carOpts();
   db.settings.car = o; save();

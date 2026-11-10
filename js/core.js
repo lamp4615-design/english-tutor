@@ -78,7 +78,7 @@ function readCache() {
 
 // 存檔：等使用者停下來 0.6 秒再一次寫進雲端；同時間只送一筆
 // 還沒跟雲端同步好之前（先用這台裝置上次的資料時）只記下「有改過」，同步好再一起存
-let saveTimer = null, saving = false, dirty = false;
+let saveTimer = null, retryTimer = null, saving = false, dirty = false, failed = false;
 function save() {
   dirty = true;
   cacheData();
@@ -88,7 +88,7 @@ function save() {
 }
 async function flush() {
   if (saving || !dirty) return;
-  saving = true; dirty = false;
+  saving = true; dirty = false; failed = false;
   try {
     const r = await run('saveData', JSON.stringify(db), rev);
     if (r.ok) { rev = r.rev; cacheData(); }
@@ -99,12 +99,15 @@ async function flush() {
       if (!session) { renderSetup(); renderLessons(); }
     }
   } catch (e) {
+    // 失敗時只排一次 5 秒後重試；不能走 save()，否則離線時每 0.6 秒就重試一次，重試還會越疊越多
     dirty = true;
+    failed = true;
     toast('雲端儲存失敗，稍後會再試：' + e.message);
-    setTimeout(flush, 5000);
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(flush, 5000);
   } finally {
     saving = false;
-    if (dirty) save();
+    if (dirty && !failed) save();
   }
 }
 window.addEventListener('beforeunload', e => { if (dirty || saving) { e.preventDefault(); e.returnValue = ''; } });

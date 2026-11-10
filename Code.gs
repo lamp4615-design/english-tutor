@@ -213,7 +213,8 @@ function genConfig_(model) {
 // 用 Gemini 產生真人語調的發音。產生過的存在雲端硬碟「英文家教語音」資料夾，同一句下次直接拿，不用再等、也不耗額度
 // 回傳 { mime, data }：mime 可能是 audio/wav 或 audio/L16;rate=24000（網頁會自己轉成 WAV）
 // lang：'zh' 唸中文（開車聽用），其他都唸英文
-function tts(text, slow, lang) {
+// fresh：true＝這句唸錯了，丟掉存好的語音重新產生
+function tts(text, slow, lang, fresh) {
   text = String(text || '').trim();
   if (!text) throw new Error('沒有要唸的句子');
   const zh = lang === 'zh';
@@ -221,7 +222,11 @@ function tts(text, slow, lang) {
     .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('') + '.json';
   const folder = ttsFolder_();
   const hit = folder.getFilesByName(name);
-  if (hit.hasNext()) return JSON.parse(hit.next().getBlob().getDataAsString());
+  if (fresh) {
+    while (hit.hasNext()) hit.next().setTrashed(true);
+  } else if (hit.hasNext()) {
+    return JSON.parse(hit.next().getBlob().getDataAsString());
+  }
 
   const key = props_().getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('請先到「設定」輸入 Gemini API 金鑰');

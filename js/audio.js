@@ -175,15 +175,16 @@ function loadVoice(text, slow) {
 }
 // 語音也存在這台裝置（瀏覽器的 Cache Storage）：同一句第二次起直接播，不用再經過 Apps Script
 const VOICE_STORE = 'english-tutor-voices';
-async function voiceData(text, slow, lang) {
+// fresh：這句唸錯了，不用存好的，重新產生並蓋掉（雲端和這台裝置都換成新的）
+async function voiceData(text, slow, lang, fresh) {
   const key = location.origin + '/__voice/' + encodeURIComponent([lang || 'en', slow ? 'slow' : 'normal', text].join('|'));
   let store = null;
   try {
     store = await caches.open(VOICE_STORE);
-    const hit = await store.match(key);
+    const hit = fresh ? null : await store.match(key);
     if (hit) { logPerf('tts（這台裝置）', 0); return await hit.json(); }
   } catch (e) {}
-  const a = await run('tts', text, !!slow, ...(lang ? [lang] : []));
+  const a = await run('tts', text, !!slow, lang || '', !!fresh);
   if (store) store.put(key, new Response(JSON.stringify(a), { headers: { 'Content-Type': 'application/json' } })).catch(() => {});
   return a;
 }
